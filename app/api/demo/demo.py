@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from typing import Union
 from pydantic import BaseModel
 from app.middleware.jwt import jwt_auth_dependency  # 正确导入依赖
+import asyncio
 
 
 router = APIRouter()
@@ -20,5 +21,6 @@ class Item(BaseModel):
     is_offer: Union[bool, None] = None
 
 @router.put("/items/{item_id}")
-def update_item(item_id: int, item: Item, _: None = Depends(jwt_auth_dependency)):
+async def update_item(item_id: int, item: Item, _: None = Depends(jwt_auth_dependency)):
+    await asyncio.sleep(2)
     return {"item_name": item.name, "item_id": item_id}
