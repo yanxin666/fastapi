@@ -1,9 +1,10 @@
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi import Request, HTTPException
-from fastapi.responses import JSONResponse
 import time
 
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
 from app.examples.request_context_demo import RequestContext, request_ctx_var
+from fastapi import HTTPException, Request
 
 
 # CORS 中间件配置
@@ -16,6 +17,7 @@ def setup_cors(app):
         allow_headers=["*"],
     )
 
+
 # 请求时间中间件
 def setup_process_time_middleware(app):
     @app.middleware("http")
@@ -26,6 +28,7 @@ def setup_process_time_middleware(app):
         response.headers["X-Process-Time"] = str(process_time)
         return response
 
+
 # 全局异常处理器
 def setup_http_exception_handler(app):
     @app.exception_handler(HTTPException)
@@ -34,6 +37,7 @@ def setup_http_exception_handler(app):
             status_code=exc.status_code,
             content={"message": exc.detail, "error": True},
         )
+
 
 # 记录 API 入参和出参的中间件
 def setup_logging_middleware(app):
@@ -53,6 +57,7 @@ def setup_logging_middleware(app):
         print(f"Response status code: {response.status_code}")
         print(f"Response headers: {response.headers}")
         return response
+
 
 # ============================================================
 # 五、HTTP Middleware：审计 / 日志 / 横切关注点
@@ -79,13 +84,15 @@ def setup_audit_middleware(app):
         ctx_from_var = request_ctx_var.get()
 
         print("=== AUDIT LOG ===")
-        print({
-            "path"                  : request.url.path,
-            "method"                : request.method,
-            "status"                : response.status_code,
-            "cost_ms"               : cost_ms,
-            "ctx_from_request_state": ctx,
-            "ctx_from_contextvar"   : ctx_from_var,
-        })
+        print(
+            {
+                "path": request.url.path,
+                "method": request.method,
+                "status": response.status_code,
+                "cost_ms": cost_ms,
+                "ctx_from_request_state": ctx,
+                "ctx_from_contextvar": ctx_from_var,
+            }
+        )
 
         return response

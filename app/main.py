@@ -1,9 +1,8 @@
 import pathlib  # 导入路径库
 
-from fastapi import FastAPI  # 导入 FastAPI 框架
-
 from app.init import auto_register_routers  # 导入自动注册 router 的函数
 from app.middleware import common as middleware_main  # 导入中间件注册模块
+from fastapi import FastAPI  # 导入 FastAPI 框架
 
 # 创建 FastAPI 应用实例
 app = FastAPI()
