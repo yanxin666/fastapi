@@ -3,6 +3,9 @@ from fastapi import Request, HTTPException
 from fastapi.responses import JSONResponse
 import time
 
+from app.examples.request_context_demo import RequestContext, request_ctx_var
+
+
 # CORS 中间件配置
 def setup_cors(app):
     app.add_middleware(
@@ -49,4 +52,40 @@ def setup_logging_middleware(app):
         # 记录响应信息
         print(f"Response status code: {response.status_code}")
         print(f"Response headers: {response.headers}")
+        return response
+
+# ============================================================
+# 五、HTTP Middleware：审计 / 日志 / 横切关注点
+# ============================================================
+def setup_audit_middleware(app):
+    @app.middleware("http")
+    async def audit_middleware(request: Request, call_next):
+        """
+        HTTP 中间件：
+        - 在 call_next 前：请求尚未处理
+        - 在 call_next 后：请求已完成（可读取最终 Context）
+        """
+        start = time.time()
+
+        # 进入下游（路由匹配 + Depends + endpoint）
+        response = await call_next(request)
+
+        cost_ms = int((time.time() - start) * 1000)
+
+        # 从 request.state 中读取 Context（推荐方式）
+        ctx: RequestContext | None = getattr(request.state, "ctx", None)
+
+        # 同时尝试从 ContextVar 读取（演示用）
+        ctx_from_var = request_ctx_var.get()
+
+        print("=== AUDIT LOG ===")
+        print({
+            "path"                  : request.url.path,
+            "method"                : request.method,
+            "status"                : response.status_code,
+            "cost_ms"               : cost_ms,
+            "ctx_from_request_state": ctx,
+            "ctx_from_contextvar"   : ctx_from_var,
+        })
+
         return response
