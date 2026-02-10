@@ -1,9 +1,10 @@
-from fastapi import Depends, Request
-from dataclasses import dataclass, field
-from typing import Optional
 import time
 import uuid
 from contextvars import ContextVar
+from dataclasses import dataclass, field
+from typing import Optional
+
+from fastapi import Depends, Request
 
 # ============================================================
 # 一、ContextVar（演示用，不作为主共享通道）
@@ -13,12 +14,14 @@ from contextvars import ContextVar
 # ContextVar 在 FastAPI 中并不能保证在所有 task 中可见，
 # 这里只是演示“它能用，但不适合作为主 Context 方案”
 # 仅用于演示：推荐实际业务用 request.state.ctx 代替 ContextVar
-request_ctx_var: ContextVar[Optional["RequestContext"]] = ContextVar("request_ctx", default=None)
+request_ctx_var: ContextVar[Optional["RequestContext"]] = ContextVar(
+    "request_ctx", default=None
+)
+
 
 # ============================================================
 # 二、RequestContext 定义（业务上下文）
 # ============================================================
-
 @dataclass
 class RequestContext:
     # 请求级基础信息
@@ -42,7 +45,6 @@ class RequestContext:
 # ============================================================
 # 三、Context 构建入口（唯一 new 的地方）
 # ============================================================
-
 def build_request_context(request: Request) -> RequestContext:
     """
     构建请求级 Context：
@@ -66,7 +68,6 @@ def build_request_context(request: Request) -> RequestContext:
 # ============================================================
 # 四、Depends 链：逐步 enrich Context
 # ============================================================
-
 def load_user(
     ctx: RequestContext = Depends(build_request_context),
 ) -> RequestContext:
@@ -79,6 +80,7 @@ def load_user(
     return ctx
 
 
+# 计算权限
 def load_permissions(
     ctx: RequestContext = Depends(load_user),
 ) -> RequestContext:
@@ -92,6 +94,7 @@ def load_permissions(
     return ctx
 
 
+# 加载环境 / 租户信息
 def load_env(
     ctx: RequestContext = Depends(load_permissions),
 ) -> RequestContext:
