@@ -1,20 +1,60 @@
-import pathlib  # 导入路径库
+import pathlib
 
-from app.init import auto_register_routers  # 导入自动注册 router 的函数
-from app.middleware import common as middleware_main  # 导入中间件注册模块
-from fastapi import FastAPI  # 导入 FastAPI 框架
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
-# 创建 FastAPI 应用实例
-app = FastAPI()
+from app.core.config import get_settings
+from app.init import auto_register_routers
+from app.middleware import common as middleware_main
 
-# 注册中间件
-middleware_main.setup_cors(app)  # 跨域中间件
-middleware_main.setup_process_time_middleware(app)  # 请求时间中间件
-middleware_main.setup_http_exception_handler(app)  # 全局异常处理器
-middleware_main.setup_logging_middleware(app)  # 请求日志中间件
-middleware_main.setup_audit_middleware(app)  # 审计中间件
 
-# 启动时递归注册 app/api 及其所有子包下的 router
-api_pkg = "app.api"  # 指定 API 包名
-api_path = pathlib.Path(__file__).parent / "api"  # 获取 api 目录的绝对路径
-auto_register_routers(app, api_pkg, api_path)  # 调用函数自动注册 router
+FRONTEND_DIST_DIR = pathlib.Path(__file__).resolve().parent.parent / "frontend" / "dist"
+FRONTEND_INDEX_FILE = FRONTEND_DIST_DIR / "index.html"
+
+
+def setup_frontend(app: FastAPI) -> None:
+    if not FRONTEND_INDEX_FILE.exists():
+        return
+
+    assets_dir = FRONTEND_DIST_DIR / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="frontend-assets")
+
+    favicon_file = FRONTEND_DIST_DIR / "favicon.svg"
+    if favicon_file.exists():
+
+        @app.get("/favicon.svg", include_in_schema=False)
+        def frontend_favicon() -> FileResponse:
+            return FileResponse(favicon_file)
+
+    @app.get("/", include_in_schema=False)
+    def frontend_index() -> FileResponse:
+        return FileResponse(FRONTEND_INDEX_FILE)
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    def frontend_spa_fallback(full_path: str) -> FileResponse:
+        if full_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="Not Found")
+        return FileResponse(FRONTEND_INDEX_FILE)
+
+
+def create_app() -> FastAPI:
+    settings = get_settings()
+    app = FastAPI(title=settings.app_name, version=settings.app_version)
+    app.state.settings = settings
+
+    middleware_main.setup_cors(app)
+    middleware_main.setup_process_time_middleware(app)
+    middleware_main.setup_http_exception_handler(app)
+    middleware_main.setup_logging_middleware(app)
+    middleware_main.setup_audit_middleware(app)
+
+    api_pkg = "app.api"
+    api_path = pathlib.Path(__file__).parent / "api"
+    auto_register_routers(app, api_pkg, api_path)
+    setup_frontend(app)
+    return app
+
+
+app = create_app()

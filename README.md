@@ -25,3 +25,38 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
+
+# Windows (cmd.exe) — 创建与激活虚拟环境
+```cmd
+REM 在项目根目录运行：
+python -m venv .venv
+.venv\Scripts\activate.bat
+```
+
+# Windows (PowerShell)
+```powershell
+# 创建并激活（如果遇到执行策略阻止，参考下文）
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+```
+
+# 如果需要重建虚拟环境（删除并重新创建）
+```cmd
+deactivate
+rmdir /S /Q .venv
+python -m venv .venv
+.venv\Scripts\activate.bat
+pip install --upgrade pip setuptools wheel
+pip install -r requirements.txt
+```
+
+# PowerShell 策略（可选）
+```powershell
+# 如果在 PowerShell 激活时报 ExecutionPolicy 错误，可运行：
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+# 运行项目（cmd）
+```cmd
+cd /D D:\project\python\fastapi && .venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```

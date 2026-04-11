@@ -1,8 +1,4 @@
-# Project dependencies (cross-platform)
-# Note: Some packages are platform-specific. We keep uvloop as an optional
-# dependency which will be installed only on non-Windows platforms.
-
-annotated-doc==0.0.4
+# Windows-specific requirements (uvloop removed — not supported on Windows)
 annotated-types==0.7.0
 anyio==4.12.1
 black==26.1.0
@@ -40,7 +36,7 @@ Pygments==2.19.2
 python-dotenv==1.2.1
 python-multipart==0.0.22
 pytokens==0.4.1
-PyYAML==6.0.3
+PyJWT==2.10.1
 rich==14.3.2
 rich-toolkit==0.18.1
 rignore==0.7.6
@@ -53,7 +49,6 @@ typing_extensions==4.15.0
 ujson==5.11.0
 urllib3==2.6.3
 uvicorn==0.40.0
-# uvloop doesn't support Windows; only install on non-Windows platforms
-uvloop==0.22.1; sys_platform != 'win32'
+# uvloop==0.22.1  # removed on Windows
 watchfiles==1.1.1
 websockets==16.0

@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends
 router = APIRouter()
 
 
-@router.get("/")
+@router.get("/hello")
 def read_root():
     return {"Hello": "World"}
 

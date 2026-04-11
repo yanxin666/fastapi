@@ -25,4 +25,9 @@ def auto_register_routers(app: FastAPI, pkg_name: str, pkg_path: pathlib.Path):
             # 如果是模块，动态导入并注册 router
             module = importlib.import_module(full_module_name)
             if hasattr(module, "router"):
-                app.include_router(module.router)
+                include_kwargs = {}
+                settings = getattr(app.state, "settings", None)
+                prefix_setting_name = getattr(module, "router_prefix_setting", None)
+                if settings is not None and prefix_setting_name:
+                    include_kwargs["prefix"] = getattr(settings, prefix_setting_name)
+                app.include_router(module.router, **include_kwargs)
