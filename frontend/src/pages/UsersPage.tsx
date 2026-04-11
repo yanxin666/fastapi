@@ -548,7 +548,7 @@ export function UsersPage() {
               placeholder="请选择角色"
               loading={rolesState.status === 'loading' || roleDetailLoadingUserId !== null}
               options={rolesState.items.map((role) => ({
-                label: role.name,
+                label: role.description ? `${role.name} (${role.description})` : role.name,
                 value: role.id,
               }))}
             />

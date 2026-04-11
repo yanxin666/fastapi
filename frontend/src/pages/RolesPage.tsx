@@ -3,16 +3,16 @@ import {
   Alert,
   Button,
   Card,
+  Checkbox,
   Form,
   Input,
   Modal,
-  Select,
   Space,
   Table,
   Typography,
   type TableColumnsType,
 } from 'antd'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { useAuth } from '../auth'
 import {
@@ -54,6 +54,16 @@ function getErrorMessage(error: unknown, fallbackMessage: string): string {
   return fallbackMessage
 }
 
+function getPermissionGroupKey(permissionCode: string): string {
+  const separatorIndex = permissionCode.indexOf(':')
+
+  if (separatorIndex === -1) {
+    return permissionCode
+  }
+
+  return permissionCode.slice(0, separatorIndex)
+}
+
 export function RolesPage() {
   const { message } = AntApp.useApp()
   const { accessToken, logout, permissions } = useAuth()
@@ -87,6 +97,36 @@ export function RolesPage() {
   const [createForm] = Form.useForm<CreateRoleInput>()
   const [editForm] = Form.useForm<UpdateRoleInput>()
   const [permissionsForm] = Form.useForm<PermissionFormValues>()
+  const selectedPermissionIds = Form.useWatch('permissionIds', permissionsForm) ?? []
+
+  const permissionGroups = useMemo(() => {
+    const groups = new Map<string, PermissionListItem[]>()
+
+    permissionsState.items.forEach((permission) => {
+      const groupKey = getPermissionGroupKey(permission.code)
+      const currentGroup = groups.get(groupKey)
+
+      if (currentGroup) {
+        currentGroup.push(permission)
+        return
+      }
+
+      groups.set(groupKey, [permission])
+    })
+
+    return Array.from(groups.entries()).map(([groupKey, items]) => ({
+      groupKey,
+      items,
+    }))
+  }, [permissionsState.items])
+
+  const allPermissionIds = useMemo(
+    () => permissionsState.items.map((permission) => permission.id),
+    [permissionsState.items],
+  )
+
+  const isPermissionSelectionDisabled =
+    permissionsState.status === 'loading' || permissionDetailLoadingRoleId !== null
 
   const handleUnauthorized = useCallback(
     async (error: unknown) => {
@@ -313,6 +353,34 @@ export function RolesPage() {
     }
   }
 
+  const updateSelectedPermissionIds = (permissionIds: number[]) => {
+    permissionsForm.setFieldsValue({ permissionIds })
+  }
+
+  const handleTogglePermission = (permissionId: number, checked: boolean) => {
+    const nextPermissionIds = checked
+      ? [...selectedPermissionIds, permissionId]
+      : selectedPermissionIds.filter((currentPermissionId) => currentPermissionId !== permissionId)
+
+    updateSelectedPermissionIds(Array.from(new Set(nextPermissionIds)))
+  }
+
+  const handleTogglePermissionGroup = (groupPermissionIds: number[], checked: boolean) => {
+    const nextPermissionIds = checked
+      ? Array.from(new Set([...selectedPermissionIds, ...groupPermissionIds]))
+      : selectedPermissionIds.filter((permissionId) => !groupPermissionIds.includes(permissionId))
+
+    updateSelectedPermissionIds(nextPermissionIds)
+  }
+
+  const handleSelectAllPermissions = () => {
+    updateSelectedPermissionIds(allPermissionIds)
+  }
+
+  const handleClearAllPermissions = () => {
+    updateSelectedPermissionIds([])
+  }
+
   const handleDeleteRole = async () => {
     if (!accessToken || !deletingRole) {
       return
@@ -510,17 +578,79 @@ export function RolesPage() {
           layout="vertical"
           onFinish={(values) => void handleAssignPermissions(values)}
         >
-          <Form.Item label="权限" name="permissionIds">
-            <Select
-              mode="multiple"
-              placeholder="请选择权限"
-              loading={permissionsState.status === 'loading' || permissionDetailLoadingRoleId !== null}
-              options={permissionsState.items.map((permission) => ({
-                label: permission.description ?? permission.code,
-                value: permission.id,
-              }))}
-            />
+          <Form.Item label="权限" name="permissionIds" hidden>
+            <Input />
           </Form.Item>
+
+          <Space direction="vertical" size="middle" style={{ display: 'flex' }}>
+            <Space wrap align="center" style={{ justifyContent: 'space-between', width: '100%' }}>
+              <Space wrap>
+                <Button
+                  type="primary"
+                  onClick={handleSelectAllPermissions}
+                  disabled={isPermissionSelectionDisabled || permissionsState.status === 'error'}
+                >
+                  全选全部权限
+                </Button>
+                <Button onClick={handleClearAllPermissions} disabled={isPermissionSelectionDisabled}>
+                  清空已选
+                </Button>
+              </Space>
+              <Typography.Text type="secondary">
+                已选择 {selectedPermissionIds.length} / {permissionsState.items.length} 项
+              </Typography.Text>
+            </Space>
+
+            {permissionsState.status === 'success' && permissionGroups.length ? (
+              <Space direction="vertical" size="middle" style={{ display: 'flex' }}>
+                {permissionGroups.map((group) => {
+                  const groupPermissionIds = group.items.map((permission) => permission.id)
+                  const selectedCount = groupPermissionIds.filter((permissionId) => selectedPermissionIds.includes(permissionId)).length
+                  const isGroupChecked = selectedCount > 0 && selectedCount === groupPermissionIds.length
+                  const isGroupIndeterminate = selectedCount > 0 && selectedCount < groupPermissionIds.length
+
+                  return (
+                    <Card
+                      key={group.groupKey}
+                      size="small"
+                      title={
+                        <Space wrap>
+                          <Checkbox
+                            checked={isGroupChecked}
+                            indeterminate={isGroupIndeterminate}
+                            disabled={isPermissionSelectionDisabled}
+                            onChange={(event) => {
+                              handleTogglePermissionGroup(groupPermissionIds, event.target.checked)
+                            }}
+                          >
+                            {group.groupKey}
+                          </Checkbox>
+                          <Typography.Text type="secondary">
+                            已选 {selectedCount} / {groupPermissionIds.length}
+                          </Typography.Text>
+                        </Space>
+                      }
+                    >
+                      <Space direction="vertical" size="small" style={{ display: 'flex' }}>
+                        {group.items.map((permission) => (
+                          <Checkbox
+                            key={permission.id}
+                            checked={selectedPermissionIds.includes(permission.id)}
+                            disabled={isPermissionSelectionDisabled}
+                            onChange={(event) => {
+                              handleTogglePermission(permission.id, event.target.checked)
+                            }}
+                          >
+                            {permission.description ?? permission.code}
+                          </Checkbox>
+                        ))}
+                      </Space>
+                    </Card>
+                  )
+                })}
+              </Space>
+            ) : null}
+          </Space>
         </Form>
       </Modal>
 

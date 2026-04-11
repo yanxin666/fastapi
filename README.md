@@ -57,6 +57,12 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
 # 运行项目（cmd）
+## 运行后端开发服务器
 ```cmd
 cd /D D:\project\python\fastapi && .venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+## 运行前端开发服务器
+```cmd
+npm --prefix "D:/project/python/fastapi/frontend" run build
 ```
