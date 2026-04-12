@@ -1,4 +1,3 @@
-from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -6,6 +5,7 @@ from app.core.db import get_db
 from app.middleware.jwt import require_permissions
 from app.models.permission import Permission
 from app.models.user import User
+from fastapi import APIRouter, Depends
 
 router = APIRouter(tags=["system"])
 router_prefix_setting = "admin_api_prefix"
@@ -18,7 +18,6 @@ def list_permissions(
 ):
     permissions = db.execute(select(Permission).order_by(Permission.id)).scalars().all()
     return {"items": [_serialize_permission(permission) for permission in permissions]}
-
 
 
 def _serialize_permission(permission: Permission) -> dict[str, object]:

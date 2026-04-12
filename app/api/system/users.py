@@ -1,4 +1,3 @@
-from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -8,6 +7,7 @@ from app.core.security import hash_password
 from app.middleware.jwt import require_permissions
 from app.models.role import Role
 from app.models.user import User
+from fastapi import APIRouter, Depends, HTTPException, status
 
 router = APIRouter(tags=["system"])
 router_prefix_setting = "admin_api_prefix"
@@ -110,7 +110,11 @@ def assign_user_roles(
 
     roles = []
     if payload.role_ids:
-        roles = db.execute(select(Role).where(Role.id.in_(payload.role_ids))).scalars().all()
+        roles = (
+            db.execute(select(Role).where(Role.id.in_(payload.role_ids)))
+            .scalars()
+            .all()
+        )
 
     user.roles = roles
     db.commit()
@@ -149,7 +153,6 @@ def reset_user_password(
     return {"success": True}
 
 
-
 def _ensure_unique_user_fields(
     db: Session,
     *,
@@ -172,7 +175,6 @@ def _ensure_unique_user_fields(
         raise HTTPException(status_code=409, detail="Email already exists")
 
 
-
 def _serialize_user(user: User) -> dict[str, object]:
     return {
         "id": user.id,
@@ -184,9 +186,16 @@ def _serialize_user(user: User) -> dict[str, object]:
 
 
 def _serialize_user_detail(user: User, db: Session) -> dict[str, object]:
-    role_names = db.execute(
-        select(Role.name).join(User.roles).where(User.id == user.id).order_by(Role.name)
-    ).scalars().all()
+    role_names = (
+        db.execute(
+            select(Role.name)
+            .join(User.roles)
+            .where(User.id == user.id)
+            .order_by(Role.name)
+        )
+        .scalars()
+        .all()
+    )
     return {
         **_serialize_user(user),
         "roles": role_names,

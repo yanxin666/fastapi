@@ -4,10 +4,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
-from alembic import command
-from alembic.config import Config
 from sqlalchemy import create_engine, text
 
+from alembic import command
+from alembic.config import Config
 from app.core.config import get_settings
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -53,11 +53,15 @@ def test_postgresql_auth_tables_accept_real_data() -> None:
             reset_auth_tables(connection)
 
             role_id = connection.execute(
-                text("INSERT INTO roles (name, description) VALUES (:name, :description) RETURNING id"),
+                text(
+                    "INSERT INTO roles (name, description) VALUES (:name, :description) RETURNING id"
+                ),
                 {"name": "superadmin", "description": "system administrator"},
             ).scalar_one()
             permission_id = connection.execute(
-                text("INSERT INTO permissions (code, description) VALUES (:code, :description) RETURNING id"),
+                text(
+                    "INSERT INTO permissions (code, description) VALUES (:code, :description) RETURNING id"
+                ),
                 {"code": "user:view", "description": "view users"},
             ).scalar_one()
             user_id = connection.execute(
@@ -73,7 +77,9 @@ def test_postgresql_auth_tables_accept_real_data() -> None:
             ).scalar_one()
 
             connection.execute(
-                text("INSERT INTO user_roles (user_id, role_id) VALUES (:user_id, :role_id)"),
+                text(
+                    "INSERT INTO user_roles (user_id, role_id) VALUES (:user_id, :role_id)"
+                ),
                 {"user_id": user_id, "role_id": role_id},
             )
             connection.execute(
@@ -108,18 +114,26 @@ def test_postgresql_auth_tables_accept_real_data() -> None:
                 text("SELECT is_active, is_superuser FROM users WHERE id = :user_id"),
                 {"user_id": user_id},
             ).one()
-            permissions = connection.execute(
-                text(
-                    "SELECT p.code "
-                    "FROM permissions p "
-                    "JOIN role_permissions rp ON rp.permission_id = p.id "
-                    "JOIN user_roles ur ON ur.role_id = rp.role_id "
-                    "WHERE ur.user_id = :user_id"
-                ),
-                {"user_id": user_id},
-            ).scalars().all()
-            refresh_token_count = connection.execute(text("SELECT COUNT(*) FROM refresh_tokens")).scalar_one()
-            audit_log_count = connection.execute(text("SELECT COUNT(*) FROM audit_logs")).scalar_one()
+            permissions = (
+                connection.execute(
+                    text(
+                        "SELECT p.code "
+                        "FROM permissions p "
+                        "JOIN role_permissions rp ON rp.permission_id = p.id "
+                        "JOIN user_roles ur ON ur.role_id = rp.role_id "
+                        "WHERE ur.user_id = :user_id"
+                    ),
+                    {"user_id": user_id},
+                )
+                .scalars()
+                .all()
+            )
+            refresh_token_count = connection.execute(
+                text("SELECT COUNT(*) FROM refresh_tokens")
+            ).scalar_one()
+            audit_log_count = connection.execute(
+                text("SELECT COUNT(*) FROM audit_logs")
+            ).scalar_one()
 
         assert tuple(flags) == (True, False)
         assert permissions == ["user:view"]

@@ -1,12 +1,11 @@
 from sqlalchemy.dialects import postgresql
 
-from app.core.db import Base
-
 import app.models.audit_log  # noqa: F401
 import app.models.permission  # noqa: F401
 import app.models.refresh_token  # noqa: F401
 import app.models.role  # noqa: F401
 import app.models.user  # noqa: F401
+from app.core.db import Base
 
 EXPECTED_TABLES = {
     "audit_logs",
@@ -38,9 +37,14 @@ def test_user_and_refresh_token_defaults_compile_for_postgresql() -> None:
     users = Base.metadata.tables["users"]
     refresh_tokens = Base.metadata.tables["refresh_tokens"]
 
-    assert {"id", "username", "email", "password_hash", "is_active", "is_superuser"}.issubset(
-        set(users.columns.keys())
-    )
+    assert {
+        "id",
+        "username",
+        "email",
+        "password_hash",
+        "is_active",
+        "is_superuser",
+    }.issubset(set(users.columns.keys()))
     assert compile_server_default(users.c.is_active) == "true"
     assert compile_server_default(users.c.is_superuser) == "false"
     assert compile_server_default(refresh_tokens.c.is_revoked) == "false"
@@ -66,21 +70,31 @@ def test_auth_tables_define_unique_indexes() -> None:
     assert refresh_token_indexes["ix_refresh_tokens_user_id"].unique is False
 
 
-def test_auth_relationship_tables_define_composite_primary_keys_and_cascading_foreign_keys() -> None:
+def test_auth_relationship_tables_define_composite_primary_keys_and_cascading_foreign_keys() -> (
+    None
+):
     user_roles = Base.metadata.tables["user_roles"]
     role_permissions = Base.metadata.tables["role_permissions"]
 
-    assert [column.name for column in user_roles.primary_key.columns] == ["user_id", "role_id"]
-    assert [column.name for column in role_permissions.primary_key.columns] == ["role_id", "permission_id"]
+    assert [column.name for column in user_roles.primary_key.columns] == [
+        "user_id",
+        "role_id",
+    ]
+    assert [column.name for column in role_permissions.primary_key.columns] == [
+        "role_id",
+        "permission_id",
+    ]
 
     assert {
-        (fk.parent.name, fk.column.table.name, fk.column.name, fk.ondelete) for fk in user_roles.foreign_keys
+        (fk.parent.name, fk.column.table.name, fk.column.name, fk.ondelete)
+        for fk in user_roles.foreign_keys
     } == {
         ("user_id", "users", "id", "CASCADE"),
         ("role_id", "roles", "id", "CASCADE"),
     }
     assert {
-        (fk.parent.name, fk.column.table.name, fk.column.name, fk.ondelete) for fk in role_permissions.foreign_keys
+        (fk.parent.name, fk.column.table.name, fk.column.name, fk.ondelete)
+        for fk in role_permissions.foreign_keys
     } == {
         ("role_id", "roles", "id", "CASCADE"),
         ("permission_id", "permissions", "id", "CASCADE"),
@@ -92,12 +106,14 @@ def test_auth_foreign_keys_match_delete_policies() -> None:
     audit_logs = Base.metadata.tables["audit_logs"]
 
     assert {
-        (fk.parent.name, fk.column.table.name, fk.column.name, fk.ondelete) for fk in refresh_tokens.foreign_keys
+        (fk.parent.name, fk.column.table.name, fk.column.name, fk.ondelete)
+        for fk in refresh_tokens.foreign_keys
     } == {
         ("user_id", "users", "id", "CASCADE"),
     }
     assert {
-        (fk.parent.name, fk.column.table.name, fk.column.name, fk.ondelete) for fk in audit_logs.foreign_keys
+        (fk.parent.name, fk.column.table.name, fk.column.name, fk.ondelete)
+        for fk in audit_logs.foreign_keys
     } == {
         ("actor_user_id", "users", "id", "SET NULL"),
     }

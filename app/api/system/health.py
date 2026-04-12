@@ -1,6 +1,5 @@
-from fastapi import APIRouter
-
 from app.core.config import get_settings
+from fastapi import APIRouter
 
 router = APIRouter(tags=["system"])
 router_prefix_setting = "admin_api_prefix"

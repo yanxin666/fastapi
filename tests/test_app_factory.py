@@ -1,9 +1,9 @@
 import pytest
-from fastapi.testclient import TestClient
 
 from app.core import db as db_module
 from app.core.config import get_settings
 from app.main import FRONTEND_INDEX_FILE, create_app
+from fastapi.testclient import TestClient
 
 DEFAULT_DATABASE_URL = "postgresql+psycopg://postgres:yanxin@localhost:5432/postgre"
 
@@ -65,7 +65,7 @@ def test_root_path_serves_frontend_index_when_built():
     assert FRONTEND_INDEX_FILE.exists()
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
-    assert "<div id=\"root\"></div>" in response.text
+    assert '<div id="root"></div>' in response.text
 
 
 def test_spa_route_serves_frontend_index_when_built():
@@ -77,7 +77,7 @@ def test_spa_route_serves_frontend_index_when_built():
     assert FRONTEND_INDEX_FILE.exists()
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
-    assert "<div id=\"root\"></div>" in response.text
+    assert '<div id="root"></div>' in response.text
 
 
 def test_unknown_api_route_still_returns_not_found():
@@ -98,7 +98,9 @@ def test_database_engine_is_created_lazily():
     assert db_module.get_session_factory.cache_info().currsize == 0
 
     engine = db_module.get_engine()
-    assert engine.url.render_as_string(hide_password=False) == get_settings().database_url
+    assert (
+        engine.url.render_as_string(hide_password=False) == get_settings().database_url
+    )
     assert db_module.get_engine.cache_info().currsize == 1
 
     session_factory = db_module.get_session_factory()

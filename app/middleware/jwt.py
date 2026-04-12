@@ -1,4 +1,3 @@
-from fastapi import Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -7,6 +6,7 @@ from app.core.security import InvalidTokenError, decode_token
 from app.models.permission import Permission
 from app.models.role import Role
 from app.models.user import User
+from fastapi import Depends, HTTPException, Request
 
 
 # JWT 校验依赖函数
@@ -35,7 +35,9 @@ def get_current_user(
 
 
 def require_permissions(*required_permissions: str):
-    def dependency(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> User:
+    def dependency(
+        user: User = Depends(get_current_user), db: Session = Depends(get_db)
+    ) -> User:
         permissions = set(
             db.execute(
                 select(Permission.code)

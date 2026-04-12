@@ -1,0 +1,9 @@
+[tool.black]
+line-length = 88
+target-version = ["py313"]
+
+[tool.isort]
+# 与 black 兼容，避免两个工具互相改格式
+profile = "black"
+line_length = 88
+

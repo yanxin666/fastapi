@@ -3,12 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from alembic import command
-from alembic.config import Config
-from alembic.script import ScriptDirectory
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.exc import IntegrityError
 
+from alembic import command
+from alembic.config import Config
+from alembic.script import ScriptDirectory
 from app.core.config import get_settings
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -47,7 +47,9 @@ def read_version(database_url: str) -> str:
     engine = create_engine(database_url)
     try:
         with engine.connect() as connection:
-            return connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
+            return connection.execute(
+                text("SELECT version_num FROM alembic_version")
+            ).scalar_one()
     finally:
         engine.dispose()
 
@@ -88,12 +90,45 @@ def test_alembic_upgrade_enforces_auth_constraints_and_defaults(tmp_path: Path) 
 
     try:
         inspector = inspect(engine)
-        assert bool(get_index(inspector.get_indexes("users"), "ix_users_username")["unique"]) is True
-        assert bool(get_index(inspector.get_indexes("users"), "ix_users_email")["unique"]) is True
-        assert bool(get_index(inspector.get_indexes("roles"), "ix_roles_name")["unique"]) is True
-        assert bool(get_index(inspector.get_indexes("permissions"), "ix_permissions_code")["unique"]) is True
-        assert bool(get_index(inspector.get_indexes("refresh_tokens"), "ix_refresh_tokens_token_id")["unique"]) is True
-        assert bool(get_index(inspector.get_indexes("refresh_tokens"), "ix_refresh_tokens_user_id")["unique"]) is False
+        assert (
+            bool(
+                get_index(inspector.get_indexes("users"), "ix_users_username")["unique"]
+            )
+            is True
+        )
+        assert (
+            bool(get_index(inspector.get_indexes("users"), "ix_users_email")["unique"])
+            is True
+        )
+        assert (
+            bool(get_index(inspector.get_indexes("roles"), "ix_roles_name")["unique"])
+            is True
+        )
+        assert (
+            bool(
+                get_index(inspector.get_indexes("permissions"), "ix_permissions_code")[
+                    "unique"
+                ]
+            )
+            is True
+        )
+        assert (
+            bool(
+                get_index(
+                    inspector.get_indexes("refresh_tokens"),
+                    "ix_refresh_tokens_token_id",
+                )["unique"]
+            )
+            is True
+        )
+        assert (
+            bool(
+                get_index(
+                    inspector.get_indexes("refresh_tokens"), "ix_refresh_tokens_user_id"
+                )["unique"]
+            )
+            is False
+        )
 
         with engine.begin() as connection:
             connection.execute(text("PRAGMA foreign_keys = ON"))
@@ -101,10 +136,16 @@ def test_alembic_upgrade_enforces_auth_constraints_and_defaults(tmp_path: Path) 
                 text(
                     "INSERT INTO users (username, email, password_hash) VALUES (:username, :email, :password_hash)"
                 ),
-                {"username": "admin", "email": "admin@example.com", "password_hash": "hashed-password"},
+                {
+                    "username": "admin",
+                    "email": "admin@example.com",
+                    "password_hash": "hashed-password",
+                },
             )
             defaults = connection.execute(
-                text("SELECT is_active, is_superuser FROM users WHERE username = :username"),
+                text(
+                    "SELECT is_active, is_superuser FROM users WHERE username = :username"
+                ),
                 {"username": "admin"},
             ).one()
 
@@ -125,7 +166,14 @@ def test_alembic_upgrade_enforces_auth_constraints_and_defaults(tmp_path: Path) 
 
 
 @pytest.mark.parametrize(
-    ("insert_sql", "insert_params", "update_sql", "update_params", "select_sql", "select_params"),
+    (
+        "insert_sql",
+        "insert_params",
+        "update_sql",
+        "update_params",
+        "select_sql",
+        "select_params",
+    ),
     [
         (
             "INSERT INTO users (username, email, password_hash, is_active, is_superuser, created_at, updated_at) "
@@ -144,7 +192,11 @@ def test_alembic_upgrade_enforces_auth_constraints_and_defaults(tmp_path: Path) 
         (
             "INSERT INTO roles (name, description, created_at, updated_at) "
             "VALUES (:name, :description, :timestamp, :timestamp)",
-            {"name": "superadmin", "description": "initial", "timestamp": LEGACY_TIMESTAMP},
+            {
+                "name": "superadmin",
+                "description": "initial",
+                "timestamp": LEGACY_TIMESTAMP,
+            },
             "UPDATE roles SET description = :description WHERE name = :name",
             {"name": "superadmin", "description": "updated"},
             "SELECT updated_at FROM roles WHERE name = :name",
@@ -167,14 +219,18 @@ def test_alembic_upgrade_refreshes_updated_at_on_direct_updates(
         with engine.begin() as connection:
             connection.execute(text(insert_sql), insert_params)
             connection.execute(text(update_sql), update_params)
-            updated_at = connection.execute(text(select_sql), select_params).scalar_one()
+            updated_at = connection.execute(
+                text(select_sql), select_params
+            ).scalar_one()
 
         assert str(updated_at) != LEGACY_TIMESTAMP
     finally:
         engine.dispose()
 
 
-def test_alembic_uses_application_database_url_by_default(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_alembic_uses_application_database_url_by_default(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     sqlite_path = tmp_path / "settings-default.db"
     sqlite_url = f"sqlite:///{sqlite_path.as_posix()}"
     monkeypatch.setenv("APP_DATABASE_URL", sqlite_url)

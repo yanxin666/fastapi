@@ -13,10 +13,14 @@ class Permission(Base):
     __tablename__ = "permissions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    code: Mapped[str] = mapped_column(String(128), unique=True, nullable=False, index=True)
+    code: Mapped[str] = mapped_column(
+        String(128), unique=True, nullable=False, index=True
+    )
     description: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
-    roles = relationship("Role", secondary=role_permissions, back_populates="permissions")
+    roles = relationship(
+        "Role", secondary=role_permissions, back_populates="permissions"
+    )

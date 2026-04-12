@@ -3,14 +3,14 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from alembic import command
-from alembic.config import Config
-from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 
+from alembic import command
+from alembic.config import Config
 from app.core.config import get_settings
 from app.core.security import decode_token, hash_password, verify_password
 from app.main import create_app
+from fastapi.testclient import TestClient
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 ALEMBIC_INI = REPO_ROOT / "alembic.ini"
@@ -58,14 +58,18 @@ def client() -> TestClient:
 def seed_admin_user(engine) -> dict[str, object]:
     with engine.begin() as connection:
         role_id = connection.execute(
-            text("INSERT INTO roles (name, description) VALUES (:name, :description) RETURNING id"),
+            text(
+                "INSERT INTO roles (name, description) VALUES (:name, :description) RETURNING id"
+            ),
             {"name": "superadmin", "description": "system administrator"},
         ).scalar_one()
         permission_ids = []
         for code in ["user:view", "user:create"]:
             permission_ids.append(
                 connection.execute(
-                    text("INSERT INTO permissions (code, description) VALUES (:code, :description) RETURNING id"),
+                    text(
+                        "INSERT INTO permissions (code, description) VALUES (:code, :description) RETURNING id"
+                    ),
                     {"code": code, "description": code},
                 ).scalar_one()
             )
@@ -81,12 +85,16 @@ def seed_admin_user(engine) -> dict[str, object]:
             },
         ).scalar_one()
         connection.execute(
-            text("INSERT INTO user_roles (user_id, role_id) VALUES (:user_id, :role_id)"),
+            text(
+                "INSERT INTO user_roles (user_id, role_id) VALUES (:user_id, :role_id)"
+            ),
             {"user_id": user_id, "role_id": role_id},
         )
         for permission_id in permission_ids:
             connection.execute(
-                text("INSERT INTO role_permissions (role_id, permission_id) VALUES (:role_id, :permission_id)"),
+                text(
+                    "INSERT INTO role_permissions (role_id, permission_id) VALUES (:role_id, :permission_id)"
+                ),
                 {"role_id": role_id, "permission_id": permission_id},
             )
 
@@ -96,7 +104,9 @@ def seed_admin_user(engine) -> dict[str, object]:
 def seed_user(engine, *, username: str, permissions: list[str]) -> dict[str, object]:
     with engine.begin() as connection:
         role_id = connection.execute(
-            text("INSERT INTO roles (name, description) VALUES (:name, :description) RETURNING id"),
+            text(
+                "INSERT INTO roles (name, description) VALUES (:name, :description) RETURNING id"
+            ),
             {"name": f"{username}-role", "description": f"{username} role"},
         ).scalar_one()
         user_id = connection.execute(
@@ -111,23 +121,31 @@ def seed_user(engine, *, username: str, permissions: list[str]) -> dict[str, obj
             },
         ).scalar_one()
         connection.execute(
-            text("INSERT INTO user_roles (user_id, role_id) VALUES (:user_id, :role_id)"),
+            text(
+                "INSERT INTO user_roles (user_id, role_id) VALUES (:user_id, :role_id)"
+            ),
             {"user_id": user_id, "role_id": role_id},
         )
         for code in permissions:
             permission_id = connection.execute(
-                text("INSERT INTO permissions (code, description) VALUES (:code, :description) RETURNING id"),
+                text(
+                    "INSERT INTO permissions (code, description) VALUES (:code, :description) RETURNING id"
+                ),
                 {"code": code, "description": code},
             ).scalar_one()
             connection.execute(
-                text("INSERT INTO role_permissions (role_id, permission_id) VALUES (:role_id, :permission_id)"),
+                text(
+                    "INSERT INTO role_permissions (role_id, permission_id) VALUES (:role_id, :permission_id)"
+                ),
                 {"role_id": role_id, "permission_id": permission_id},
             )
 
     return {"user_id": user_id, "username": username}
 
 
-def test_login_returns_tokens_and_persists_refresh_token(client: TestClient, auth_engine) -> None:
+def test_login_returns_tokens_and_persists_refresh_token(
+    client: TestClient, auth_engine
+) -> None:
     seed_admin_user(auth_engine)
 
     response = client.post(
@@ -170,7 +188,9 @@ def test_login_rejects_invalid_password(client: TestClient, auth_engine) -> None
     assert response.json() == {"message": "Invalid username or password", "error": True}
 
 
-def test_refresh_rotates_refresh_token_and_returns_new_access_token(client: TestClient, auth_engine) -> None:
+def test_refresh_rotates_refresh_token_and_returns_new_access_token(
+    client: TestClient, auth_engine
+) -> None:
     seed_admin_user(auth_engine)
     login_response = client.post(
         "/api/v1/admin/auth/login",
@@ -234,19 +254,27 @@ def test_role_detail_returns_role_profile(client: TestClient, auth_engine) -> No
             {"name": "auditor", "description": "audit role"},
         )
         connection.execute(
-            text("INSERT INTO permissions (code, description) VALUES (:code, :description)"),
+            text(
+                "INSERT INTO permissions (code, description) VALUES (:code, :description)"
+            ),
             {"code": "user:view", "description": "view users"},
         )
         connection.execute(
-            text("INSERT INTO permissions (code, description) VALUES (:code, :description)"),
+            text(
+                "INSERT INTO permissions (code, description) VALUES (:code, :description)"
+            ),
             {"code": "user:create", "description": "create users"},
         )
         connection.execute(
-            text("INSERT INTO role_permissions (role_id, permission_id) VALUES (:role_id, :permission_id)"),
+            text(
+                "INSERT INTO role_permissions (role_id, permission_id) VALUES (:role_id, :permission_id)"
+            ),
             {"role_id": 2, "permission_id": 2},
         )
         connection.execute(
-            text("INSERT INTO role_permissions (role_id, permission_id) VALUES (:role_id, :permission_id)"),
+            text(
+                "INSERT INTO role_permissions (role_id, permission_id) VALUES (:role_id, :permission_id)"
+            ),
             {"role_id": 2, "permission_id": 3},
         )
 
@@ -270,7 +298,6 @@ def test_role_detail_returns_role_profile(client: TestClient, auth_engine) -> No
     }
 
 
-
 def test_role_detail_returns_not_found(client: TestClient, auth_engine) -> None:
     seed_user(auth_engine, username="manager", permissions=["role:view"])
     login_response = client.post(
@@ -288,18 +315,21 @@ def test_role_detail_returns_not_found(client: TestClient, auth_engine) -> None:
     assert response.json() == {"message": "Role not found", "error": True}
 
 
-
 def test_permissions_list_requires_permission_and_returns_permissions(
     client: TestClient, auth_engine
 ) -> None:
     seed_user(auth_engine, username="auditor", permissions=["permission:view"])
     with auth_engine.begin() as connection:
         connection.execute(
-            text("INSERT INTO permissions (code, description) VALUES (:code, :description)"),
+            text(
+                "INSERT INTO permissions (code, description) VALUES (:code, :description)"
+            ),
             {"code": "role:view", "description": "view roles"},
         )
         connection.execute(
-            text("INSERT INTO permissions (code, description) VALUES (:code, :description)"),
+            text(
+                "INSERT INTO permissions (code, description) VALUES (:code, :description)"
+            ),
             {"code": "user:update", "description": "update users"},
         )
 
@@ -324,8 +354,9 @@ def test_permissions_list_requires_permission_and_returns_permissions(
     }
 
 
-
-def test_permissions_list_forbids_missing_permission(client: TestClient, auth_engine) -> None:
+def test_permissions_list_forbids_missing_permission(
+    client: TestClient, auth_engine
+) -> None:
     seed_user(auth_engine, username="operator", permissions=[])
     login_response = client.post(
         "/api/v1/admin/auth/login",
@@ -342,8 +373,9 @@ def test_permissions_list_forbids_missing_permission(client: TestClient, auth_en
     assert response.json() == {"message": "Permission denied", "error": True}
 
 
-
-def test_roles_list_requires_permission_and_returns_roles(client: TestClient, auth_engine) -> None:
+def test_roles_list_requires_permission_and_returns_roles(
+    client: TestClient, auth_engine
+) -> None:
     seed_user(auth_engine, username="manager", permissions=["role:view"])
     with auth_engine.begin() as connection:
         connection.execute(
@@ -376,7 +408,6 @@ def test_roles_list_requires_permission_and_returns_roles(client: TestClient, au
     }
 
 
-
 def test_roles_list_forbids_missing_permission(client: TestClient, auth_engine) -> None:
     seed_user(auth_engine, username="operator", permissions=[])
     login_response = client.post(
@@ -392,7 +423,6 @@ def test_roles_list_forbids_missing_permission(client: TestClient, auth_engine) 
 
     assert response.status_code == 403
     assert response.json() == {"message": "Permission denied", "error": True}
-
 
 
 def test_create_role_persists_record_via_post(client: TestClient, auth_engine) -> None:
@@ -424,8 +454,9 @@ def test_create_role_persists_record_via_post(client: TestClient, auth_engine) -
     assert created_role == ("auditor", "audit role")
 
 
-
-def test_create_role_forbids_missing_permission(client: TestClient, auth_engine) -> None:
+def test_create_role_forbids_missing_permission(
+    client: TestClient, auth_engine
+) -> None:
     seed_user(auth_engine, username="operator", permissions=[])
     login_response = client.post(
         "/api/v1/admin/auth/login",
@@ -441,7 +472,6 @@ def test_create_role_forbids_missing_permission(client: TestClient, auth_engine)
 
     assert response.status_code == 403
     assert response.json() == {"message": "Permission denied", "error": True}
-
 
 
 def test_create_role_rejects_duplicate_name(client: TestClient, auth_engine) -> None:
@@ -466,7 +496,6 @@ def test_create_role_rejects_duplicate_name(client: TestClient, auth_engine) -> 
 
     assert response.status_code == 409
     assert response.json() == {"message": "Role name already exists", "error": True}
-
 
 
 def test_update_role_persists_changes_via_post(client: TestClient, auth_engine) -> None:
@@ -504,8 +533,9 @@ def test_update_role_persists_changes_via_post(client: TestClient, auth_engine) 
     assert updated_role == ("auditor-updated", "updated audit role")
 
 
-
-def test_update_role_forbids_missing_permission(client: TestClient, auth_engine) -> None:
+def test_update_role_forbids_missing_permission(
+    client: TestClient, auth_engine
+) -> None:
     seed_user(auth_engine, username="operator", permissions=[])
     with auth_engine.begin() as connection:
         connection.execute(
@@ -529,8 +559,9 @@ def test_update_role_forbids_missing_permission(client: TestClient, auth_engine)
     assert response.json() == {"message": "Permission denied", "error": True}
 
 
-
-def test_update_role_rejects_duplicate_name_via_post(client: TestClient, auth_engine) -> None:
+def test_update_role_rejects_duplicate_name_via_post(
+    client: TestClient, auth_engine
+) -> None:
     seed_user(auth_engine, username="manager", permissions=["role:update"])
     with auth_engine.begin() as connection:
         connection.execute(
@@ -558,7 +589,6 @@ def test_update_role_rejects_duplicate_name_via_post(client: TestClient, auth_en
     assert response.json() == {"message": "Role name already exists", "error": True}
 
 
-
 def test_update_role_returns_not_found(client: TestClient, auth_engine) -> None:
     seed_user(auth_engine, username="manager", permissions=["role:update"])
     login_response = client.post(
@@ -577,7 +607,6 @@ def test_update_role_returns_not_found(client: TestClient, auth_engine) -> None:
     assert response.json() == {"message": "Role not found", "error": True}
 
 
-
 def test_assign_role_permissions_replaces_permissions_via_post(
     client: TestClient, auth_engine
 ) -> None:
@@ -588,15 +617,21 @@ def test_assign_role_permissions_replaces_permissions_via_post(
             {"name": "auditor", "description": "audit role"},
         )
         connection.execute(
-            text("INSERT INTO permissions (code, description) VALUES (:code, :description)"),
+            text(
+                "INSERT INTO permissions (code, description) VALUES (:code, :description)"
+            ),
             {"code": "user:view", "description": "view users"},
         )
         connection.execute(
-            text("INSERT INTO permissions (code, description) VALUES (:code, :description)"),
+            text(
+                "INSERT INTO permissions (code, description) VALUES (:code, :description)"
+            ),
             {"code": "user:create", "description": "create users"},
         )
         connection.execute(
-            text("INSERT INTO role_permissions (role_id, permission_id) VALUES (:role_id, :permission_id)"),
+            text(
+                "INSERT INTO role_permissions (role_id, permission_id) VALUES (:role_id, :permission_id)"
+            ),
             {"role_id": 2, "permission_id": 2},
         )
 
@@ -616,14 +651,17 @@ def test_assign_role_permissions_replaces_permissions_via_post(
     assert response.json() == {"success": True}
 
     with auth_engine.connect() as connection:
-        permission_ids = connection.execute(
-            text(
-                "SELECT permission_id FROM role_permissions WHERE role_id = 2 ORDER BY permission_id"
+        permission_ids = (
+            connection.execute(
+                text(
+                    "SELECT permission_id FROM role_permissions WHERE role_id = 2 ORDER BY permission_id"
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
 
     assert permission_ids == [3]
-
 
 
 def test_assign_role_permissions_forbids_missing_permission(
@@ -636,7 +674,9 @@ def test_assign_role_permissions_forbids_missing_permission(
             {"name": "auditor", "description": "audit role"},
         )
         connection.execute(
-            text("INSERT INTO permissions (code, description) VALUES (:code, :description)"),
+            text(
+                "INSERT INTO permissions (code, description) VALUES (:code, :description)"
+            ),
             {"code": "user:view", "description": "view users"},
         )
 
@@ -654,9 +694,6 @@ def test_assign_role_permissions_forbids_missing_permission(
 
     assert response.status_code == 403
     assert response.json() == {"message": "Permission denied", "error": True}
-
-
-
 
 
 def test_delete_role_removes_role_via_post(client: TestClient, auth_engine) -> None:
@@ -682,10 +719,11 @@ def test_delete_role_removes_role_via_post(client: TestClient, auth_engine) -> N
     assert response.json() == {"success": True}
 
     with auth_engine.connect() as connection:
-        deleted_role = connection.execute(text("SELECT id FROM roles WHERE id = 2")).scalar_one_or_none()
+        deleted_role = connection.execute(
+            text("SELECT id FROM roles WHERE id = 2")
+        ).scalar_one_or_none()
 
     assert deleted_role is None
-
 
 
 def test_delete_role_returns_not_found(client: TestClient, auth_engine) -> None:
@@ -705,8 +743,9 @@ def test_delete_role_returns_not_found(client: TestClient, auth_engine) -> None:
     assert response.json() == {"message": "Role not found", "error": True}
 
 
-
-def test_delete_role_rejects_role_assigned_to_users(client: TestClient, auth_engine) -> None:
+def test_delete_role_rejects_role_assigned_to_users(
+    client: TestClient, auth_engine
+) -> None:
     seed_user(auth_engine, username="manager", permissions=["role:delete"])
     with auth_engine.begin() as connection:
         connection.execute(
@@ -725,7 +764,9 @@ def test_delete_role_rejects_role_assigned_to_users(client: TestClient, auth_eng
             },
         )
         connection.execute(
-            text("INSERT INTO user_roles (user_id, role_id) VALUES (:user_id, :role_id)"),
+            text(
+                "INSERT INTO user_roles (user_id, role_id) VALUES (:user_id, :role_id)"
+            ),
             {"user_id": 2, "role_id": 2},
         )
 
@@ -747,8 +788,9 @@ def test_delete_role_rejects_role_assigned_to_users(client: TestClient, auth_eng
     }
 
 
-
-def test_users_list_requires_permission_and_returns_users(client: TestClient, auth_engine) -> None:
+def test_users_list_requires_permission_and_returns_users(
+    client: TestClient, auth_engine
+) -> None:
     seed_admin_user(auth_engine)
     login_response = client.post(
         "/api/v1/admin/auth/login",
@@ -792,7 +834,6 @@ def test_users_list_forbids_missing_permission(client: TestClient, auth_engine) 
     assert response.json() == {"message": "Permission denied", "error": True}
 
 
-
 def test_user_detail_returns_user_profile(client: TestClient, auth_engine) -> None:
     seed_admin_user(auth_engine)
     login_response = client.post(
@@ -815,7 +856,6 @@ def test_user_detail_returns_user_profile(client: TestClient, auth_engine) -> No
         "is_superuser": False,
         "roles": ["superadmin"],
     }
-
 
 
 def test_create_user_persists_record(client: TestClient, auth_engine) -> None:
@@ -855,8 +895,9 @@ def test_create_user_persists_record(client: TestClient, auth_engine) -> None:
     assert created_user[2] != "secret123"
 
 
-
-def test_create_user_rejects_duplicate_username(client: TestClient, auth_engine) -> None:
+def test_create_user_rejects_duplicate_username(
+    client: TestClient, auth_engine
+) -> None:
     seed_admin_user(auth_engine)
     login_response = client.post(
         "/api/v1/admin/auth/login",
@@ -876,7 +917,6 @@ def test_create_user_rejects_duplicate_username(client: TestClient, auth_engine)
 
     assert response.status_code == 409
     assert response.json() == {"message": "Username already exists", "error": True}
-
 
 
 def test_create_user_rejects_duplicate_email(client: TestClient, auth_engine) -> None:
@@ -899,7 +939,6 @@ def test_create_user_rejects_duplicate_email(client: TestClient, auth_engine) ->
 
     assert response.status_code == 409
     assert response.json() == {"message": "Email already exists", "error": True}
-
 
 
 def test_update_user_persists_changes_via_post(client: TestClient, auth_engine) -> None:
@@ -937,8 +976,9 @@ def test_update_user_persists_changes_via_post(client: TestClient, auth_engine) 
     assert updated_user == ("editor-updated", "editor-updated@example.com")
 
 
-
-def test_update_user_rejects_duplicate_username_via_post(client: TestClient, auth_engine) -> None:
+def test_update_user_rejects_duplicate_username_via_post(
+    client: TestClient, auth_engine
+) -> None:
     seed_admin_user(auth_engine)
     seed_user(auth_engine, username="editor", permissions=[])
     login_response = client.post(
@@ -960,8 +1000,9 @@ def test_update_user_rejects_duplicate_username_via_post(client: TestClient, aut
     assert response.json() == {"message": "Username already exists", "error": True}
 
 
-
-def test_update_user_rejects_duplicate_email_via_post(client: TestClient, auth_engine) -> None:
+def test_update_user_rejects_duplicate_email_via_post(
+    client: TestClient, auth_engine
+) -> None:
     seed_admin_user(auth_engine)
     seed_user(auth_engine, username="editor", permissions=[])
     login_response = client.post(
@@ -983,8 +1024,9 @@ def test_update_user_rejects_duplicate_email_via_post(client: TestClient, auth_e
     assert response.json() == {"message": "Email already exists", "error": True}
 
 
-
-def test_assign_user_roles_replaces_roles_via_post(client: TestClient, auth_engine) -> None:
+def test_assign_user_roles_replaces_roles_via_post(
+    client: TestClient, auth_engine
+) -> None:
     seed_admin_user(auth_engine)
     seed_user(auth_engine, username="editor", permissions=[])
     with auth_engine.begin() as connection:
@@ -1013,15 +1055,22 @@ def test_assign_user_roles_replaces_roles_via_post(client: TestClient, auth_engi
     assert response.json() == {"success": True}
 
     with auth_engine.connect() as connection:
-        role_ids = connection.execute(
-            text("SELECT role_id FROM user_roles WHERE user_id = 2 ORDER BY role_id")
-        ).scalars().all()
+        role_ids = (
+            connection.execute(
+                text(
+                    "SELECT role_id FROM user_roles WHERE user_id = 2 ORDER BY role_id"
+                )
+            )
+            .scalars()
+            .all()
+        )
 
     assert role_ids == [3]
 
 
-
-def test_assign_user_roles_forbids_missing_permission(client: TestClient, auth_engine) -> None:
+def test_assign_user_roles_forbids_missing_permission(
+    client: TestClient, auth_engine
+) -> None:
     seed_user(auth_engine, username="operator", permissions=[])
     seed_user(auth_engine, username="editor", permissions=[])
     with auth_engine.begin() as connection:
@@ -1046,8 +1095,9 @@ def test_assign_user_roles_forbids_missing_permission(client: TestClient, auth_e
     assert response.json() == {"message": "Permission denied", "error": True}
 
 
-
-def test_assign_user_roles_returns_not_found_for_missing_user(client: TestClient, auth_engine) -> None:
+def test_assign_user_roles_returns_not_found_for_missing_user(
+    client: TestClient, auth_engine
+) -> None:
     seed_admin_user(auth_engine)
     with auth_engine.begin() as connection:
         connection.execute(
@@ -1071,7 +1121,6 @@ def test_assign_user_roles_returns_not_found_for_missing_user(client: TestClient
     assert response.json() == {"message": "User not found", "error": True}
 
 
-
 def test_user_routes_use_get_or_post_only(client: TestClient, auth_engine) -> None:
     seed_admin_user(auth_engine)
     login_response = client.post(
@@ -1087,7 +1136,6 @@ def test_user_routes_use_get_or_post_only(client: TestClient, auth_engine) -> No
     )
 
     assert response.status_code == 405
-
 
 
 def test_toggle_user_active_status_via_post(client: TestClient, auth_engine) -> None:
@@ -1114,13 +1162,16 @@ def test_toggle_user_active_status_via_post(client: TestClient, auth_engine) -> 
     }
 
     with auth_engine.connect() as connection:
-        is_active = connection.execute(text("SELECT is_active FROM users WHERE id = 2")).scalar_one()
+        is_active = connection.execute(
+            text("SELECT is_active FROM users WHERE id = 2")
+        ).scalar_one()
 
     assert is_active is False
 
 
-
-def test_toggle_user_active_status_switches_back_on_second_post(client: TestClient, auth_engine) -> None:
+def test_toggle_user_active_status_switches_back_on_second_post(
+    client: TestClient, auth_engine
+) -> None:
     seed_admin_user(auth_engine)
     seed_user(auth_engine, username="editor", permissions=[])
     login_response = client.post(
@@ -1147,7 +1198,6 @@ def test_toggle_user_active_status_switches_back_on_second_post(client: TestClie
         "is_active": True,
         "is_superuser": False,
     }
-
 
 
 def test_reset_user_password_via_post(client: TestClient, auth_engine) -> None:
@@ -1177,8 +1227,9 @@ def test_reset_user_password_via_post(client: TestClient, auth_engine) -> None:
     assert verify_password("new-secret456", password_hash) is True
 
 
-
-def test_reset_user_password_replaces_previous_hash(client: TestClient, auth_engine) -> None:
+def test_reset_user_password_replaces_previous_hash(
+    client: TestClient, auth_engine
+) -> None:
     seed_admin_user(auth_engine)
     seed_user(auth_engine, username="editor", permissions=[])
     with auth_engine.connect() as connection:
@@ -1206,5 +1257,3 @@ def test_reset_user_password_replaces_previous_hash(client: TestClient, auth_eng
         ).scalar_one()
 
     assert updated_hash != original_hash
-
-

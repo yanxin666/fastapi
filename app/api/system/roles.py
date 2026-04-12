@@ -1,4 +1,3 @@
-from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -8,6 +7,7 @@ from app.middleware.jwt import require_permissions
 from app.models.permission import Permission
 from app.models.role import Role
 from app.models.user import User
+from fastapi import APIRouter, Depends, HTTPException, status
 
 router = APIRouter(tags=["system"])
 router_prefix_setting = "admin_api_prefix"
@@ -54,7 +54,9 @@ def create_role(
     _: User = Depends(require_permissions("role:create")),
     db: Session = Depends(get_db),
 ):
-    existing_role = db.execute(select(Role.id).where(Role.name == payload.name)).scalar_one_or_none()
+    existing_role = db.execute(
+        select(Role.id).where(Role.name == payload.name)
+    ).scalar_one_or_none()
     if existing_role is not None:
         raise HTTPException(status_code=409, detail="Role name already exists")
 
@@ -126,14 +128,17 @@ def assign_role_permissions(
 
     permissions = []
     if payload.permission_ids:
-        permissions = db.execute(
-            select(Permission).where(Permission.id.in_(payload.permission_ids))
-        ).scalars().all()
+        permissions = (
+            db.execute(
+                select(Permission).where(Permission.id.in_(payload.permission_ids))
+            )
+            .scalars()
+            .all()
+        )
 
     role.permissions = permissions
     db.commit()
     return {"success": True}
-
 
 
 def _serialize_role(role: Role) -> dict[str, object]:
@@ -144,14 +149,17 @@ def _serialize_role(role: Role) -> dict[str, object]:
     }
 
 
-
 def _serialize_role_detail(role: Role, db: Session) -> dict[str, object]:
-    permission_codes = db.execute(
-        select(Permission.code)
-        .join(Role.permissions)
-        .where(Role.id == role.id)
-        .order_by(Permission.code)
-    ).scalars().all()
+    permission_codes = (
+        db.execute(
+            select(Permission.code)
+            .join(Role.permissions)
+            .where(Role.id == role.id)
+            .order_by(Permission.code)
+        )
+        .scalars()
+        .all()
+    )
     return {
         **_serialize_role(role),
         "permissions": permission_codes,

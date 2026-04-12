@@ -1,0 +1,14 @@
+repos:
+  - repo: local
+    hooks:
+      - id: isort
+        name: isort (整理 Python 导入)
+        entry: python -m isort
+        language: system
+        types: [python]
+      - id: black
+        name: black (统一 Python 格式)
+        entry: python -m black
+        language: system
+        types: [python]
+

@@ -3,7 +3,6 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -22,6 +21,7 @@ from app.models.permission import Permission
 from app.models.refresh_token import RefreshToken
 from app.models.role import Role
 from app.models.user import User
+from fastapi import APIRouter, Depends, HTTPException
 
 router = APIRouter(tags=["auth"])
 router_prefix_setting = "admin_api_prefix"
@@ -38,7 +38,9 @@ class RefreshTokenRequest(BaseModel):
 
 @router.post("/auth/login")
 def login(payload: LoginRequest, db: Session = Depends(get_db)):
-    user = db.execute(select(User).where(User.username == payload.username)).scalar_one_or_none()
+    user = db.execute(
+        select(User).where(User.username == payload.username)
+    ).scalar_one_or_none()
     if user is None or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
@@ -48,7 +50,8 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
         RefreshToken(
             token_id=refresh_token_id,
             user_id=user.id,
-            expires_at=datetime.now(UTC) + timedelta(days=settings.refresh_token_ttl_days),
+            expires_at=datetime.now(UTC)
+            + timedelta(days=settings.refresh_token_ttl_days),
         )
     )
     db.commit()
@@ -73,7 +76,8 @@ def refresh_access_token(payload: RefreshTokenRequest, db: Session = Depends(get
         RefreshToken(
             token_id=new_token_id,
             user_id=user.id,
-            expires_at=datetime.now(UTC) + timedelta(days=settings.refresh_token_ttl_days),
+            expires_at=datetime.now(UTC)
+            + timedelta(days=settings.refresh_token_ttl_days),
         )
     )
     db.commit()
@@ -122,17 +126,28 @@ def _get_refresh_token_user(token: str, db: Session) -> tuple[RefreshToken, User
 
 
 def _serialize_user(user: User, db: Session) -> dict[str, object]:
-    roles = db.execute(
-        select(Role.name).join(User.roles).where(User.id == user.id).order_by(Role.name)
-    ).scalars().all()
-    permissions = db.execute(
-        select(Permission.code)
-        .join(Role.permissions)
-        .join(Role.users)
-        .where(User.id == user.id)
-        .distinct()
-        .order_by(Permission.code)
-    ).scalars().all()
+    roles = (
+        db.execute(
+            select(Role.name)
+            .join(User.roles)
+            .where(User.id == user.id)
+            .order_by(Role.name)
+        )
+        .scalars()
+        .all()
+    )
+    permissions = (
+        db.execute(
+            select(Permission.code)
+            .join(Role.permissions)
+            .join(Role.users)
+            .where(User.id == user.id)
+            .distinct()
+            .order_by(Permission.code)
+        )
+        .scalars()
+        .all()
+    )
     return {
         "id": user.id,
         "username": user.username,

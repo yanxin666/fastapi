@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
 import hashlib
 import hmac
 import secrets
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 
 import jwt
 
@@ -25,7 +25,9 @@ class TokenPayload:
 
 def hash_password(password: str) -> str:
     salt = secrets.token_hex(16)
-    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), 100000)
+    digest = hashlib.pbkdf2_hmac(
+        "sha256", password.encode("utf-8"), salt.encode("utf-8"), 100000
+    )
     return f"{salt}${digest.hex()}"
 
 
@@ -35,13 +37,17 @@ def verify_password(password: str, password_hash: str) -> bool:
     except ValueError:
         return False
 
-    actual_digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), 100000).hex()
+    actual_digest = hashlib.pbkdf2_hmac(
+        "sha256", password.encode("utf-8"), salt.encode("utf-8"), 100000
+    ).hex()
     return hmac.compare_digest(actual_digest, expected_digest)
 
 
 def create_access_token(subject: str) -> str:
     settings = get_settings()
-    expires_at = datetime.now(UTC) + timedelta(minutes=settings.access_token_ttl_minutes)
+    expires_at = datetime.now(UTC) + timedelta(
+        minutes=settings.access_token_ttl_minutes
+    )
     return _encode_token(subject=subject, token_type="access", expires_at=expires_at)
 
 
@@ -59,7 +65,9 @@ def create_refresh_token(subject: str, token_id: str) -> str:
 def decode_token(token: str, *, expected_token_type: str) -> TokenPayload:
     settings = get_settings()
     try:
-        payload = jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
+        payload = jwt.decode(
+            token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm]
+        )
     except jwt.InvalidTokenError as exc:
         raise InvalidTokenError("Invalid token") from exc
 
@@ -96,4 +104,6 @@ def _encode_token(
     }
     if token_id is not None:
         payload["jti"] = token_id
-    return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
+    return jwt.encode(
+        payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm
+    )
