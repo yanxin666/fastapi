@@ -50,7 +50,9 @@ install-backend:
 	$(VENV_PYTHON) -m pip install -r requirements.txt -i $(PYPI_INDEX_URL)
 
 add-backend:
-	@if [ -z "$(PKG)" ]; then echo "请传入 PKG，例如: make add-backend PKG=fastapi"; exit 1; fi
+ifndef PKG
+	$(error 请传入 PKG, 例如: make add-backend PKG=fastapi)
+endif
 	$(VENV_PYTHON) -m pip install $(PKG) -i $(PYPI_INDEX_URL)
 	$(VENV_PYTHON) -m pip freeze > requirements.txt
 
