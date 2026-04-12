@@ -400,3 +400,69 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
     - `APP_DATABASE_URL` 是否正确
     - 数据库用户权限是否足够
     - 目标数据库是否已创建
+
+---
+
+## 11. Tailscale Funnel 脚本用法（Windows）
+
+为简化公网访问启动流程，项目根目录提供了两个脚本：
+
+- `start_funnel.cmd`：启动 FastAPI（新窗口）并开启 Tailscale Funnel
+- `stop_funnel.cmd`：关闭 Tailscale Funnel
+- `restart_funnel.cmd`：先关闭旧 Funnel，再重新启动 FastAPI 与 Funnel
+
+### 11.1 启动公网访问
+
+在 `cmd` 中执行：
+
+```cmd
+cd /D D:\project\python\fastapi
+start_funnel.cmd
+```
+
+启动成功后：
+
+- 本地访问地址：`http://127.0.0.1:8000`
+- 公网访问地址：以 `start_funnel.cmd` 输出的 `https://...ts.net` 为准
+
+### 11.2 关闭公网访问
+
+在 `cmd` 中执行：
+
+```cmd
+cd /D D:\project\python\fastapi
+stop_funnel.cmd
+```
+
+`stop_funnel.cmd` 仅关闭 Funnel 映射，不会自动关闭 `FastAPI-Uvicorn` 窗口。
+
+### 11.3 重启公网访问（推荐变更后执行）
+
+在 `cmd` 中执行：
+
+```cmd
+cd /D D:\project\python\fastapi
+restart_funnel.cmd
+```
+
+该脚本会按顺序调用：
+
+1. `stop_funnel.cmd`
+2. `start_funnel.cmd`
+
+若任一步失败会立即退出，并输出错误信息。
+
+### 11.4 常用检查命令
+
+```cmd
+tailscale status
+tailscale funnel status
+tailscale serve status
+```
+
+### 11.5 使用前提
+
+- 已安装并登录 Tailscale
+- `D:\project\python\fastapi\.venv` 已创建且依赖已安装
+- `tailscale` 命令可在终端直接调用
+

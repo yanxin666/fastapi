@@ -97,7 +97,8 @@ py -3 -m venv .venv
 .venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 npm --prefix frontend install
-python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+npm --prefix frontend run build
+.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 如遇 PowerShell 执行策略问题，可执行：
