@@ -2,14 +2,14 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.authz.router import PolicyRouter
 from app.core.db import get_db
-from app.middleware.jwt import require_permissions
 from app.models.permission import Permission
 from app.models.role import Role
 from app.models.user import User
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status
 
-router = APIRouter(tags=["system"])
+router = PolicyRouter(tags=["system"])
 router_prefix_setting = "admin_api_prefix"
 
 
@@ -29,7 +29,6 @@ class AssignRolePermissionsRequest(BaseModel):
 
 @router.get("/roles")
 def list_roles(
-    _: User = Depends(require_permissions("role:view")),
     db: Session = Depends(get_db),
 ):
     roles = db.execute(select(Role).order_by(Role.id)).scalars().all()
@@ -39,7 +38,6 @@ def list_roles(
 @router.get("/roles/{role_id}")
 def get_role_detail(
     role_id: int,
-    _: User = Depends(require_permissions("role:view")),
     db: Session = Depends(get_db),
 ):
     role = db.get(Role, role_id)
@@ -51,7 +49,6 @@ def get_role_detail(
 @router.post("/roles", status_code=status.HTTP_201_CREATED)
 def create_role(
     payload: CreateRoleRequest,
-    _: User = Depends(require_permissions("role:create")),
     db: Session = Depends(get_db),
 ):
     existing_role = db.execute(
@@ -71,7 +68,6 @@ def create_role(
 def update_role(
     role_id: int,
     payload: UpdateRoleRequest,
-    _: User = Depends(require_permissions("role:update")),
     db: Session = Depends(get_db),
 ):
     role = db.get(Role, role_id)
@@ -94,7 +90,6 @@ def update_role(
 @router.post("/roles/{role_id}/delete")
 def delete_role(
     role_id: int,
-    _: User = Depends(require_permissions("role:delete")),
     db: Session = Depends(get_db),
 ):
     role = db.get(Role, role_id)
@@ -119,7 +114,6 @@ def delete_role(
 def assign_role_permissions(
     role_id: int,
     payload: AssignRolePermissionsRequest,
-    _: User = Depends(require_permissions("role:update")),
     db: Session = Depends(get_db),
 ):
     role = db.get(Role, role_id)

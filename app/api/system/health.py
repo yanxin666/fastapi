@@ -1,7 +1,7 @@
+from app.authz.router import PolicyRouter
 from app.core.config import get_settings
-from fastapi import APIRouter
 
-router = APIRouter(tags=["system"])
+router = PolicyRouter(tags=["system"])
 router_prefix_setting = "admin_api_prefix"
 
 

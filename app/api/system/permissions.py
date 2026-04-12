@@ -1,19 +1,17 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.authz.router import PolicyRouter
 from app.core.db import get_db
-from app.middleware.jwt import require_permissions
 from app.models.permission import Permission
-from app.models.user import User
-from fastapi import APIRouter, Depends
+from fastapi import Depends
 
-router = APIRouter(tags=["system"])
+router = PolicyRouter(tags=["system"])
 router_prefix_setting = "admin_api_prefix"
 
 
 @router.get("/permissions")
 def list_permissions(
-    _: User = Depends(require_permissions("permission:view")),
     db: Session = Depends(get_db),
 ):
     permissions = db.execute(select(Permission).order_by(Permission.id)).scalars().all()

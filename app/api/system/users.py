@@ -2,14 +2,14 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.authz.router import PolicyRouter
 from app.core.db import get_db
 from app.core.security import hash_password
-from app.middleware.jwt import require_permissions
 from app.models.role import Role
 from app.models.user import User
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status
 
-router = APIRouter(tags=["system"])
+router = PolicyRouter(tags=["system"])
 router_prefix_setting = "admin_api_prefix"
 
 
@@ -34,7 +34,6 @@ class AssignUserRolesRequest(BaseModel):
 
 @router.get("/users")
 def list_users(
-    _: User = Depends(require_permissions("user:view")),
     db: Session = Depends(get_db),
 ):
     users = db.execute(select(User).order_by(User.id)).scalars().all()
@@ -44,7 +43,6 @@ def list_users(
 @router.get("/users/{user_id}")
 def get_user_detail(
     user_id: int,
-    _: User = Depends(require_permissions("user:view")),
     db: Session = Depends(get_db),
 ):
     user = db.get(User, user_id)
@@ -56,7 +54,6 @@ def get_user_detail(
 @router.post("/users", status_code=status.HTTP_201_CREATED)
 def create_user(
     payload: CreateUserRequest,
-    _: User = Depends(require_permissions("user:create")),
     db: Session = Depends(get_db),
 ):
     _ensure_unique_user_fields(db, username=payload.username, email=payload.email)
@@ -76,7 +73,6 @@ def create_user(
 def update_user(
     user_id: int,
     payload: UpdateUserRequest,
-    _: User = Depends(require_permissions("user:create")),
     db: Session = Depends(get_db),
 ):
     user = db.get(User, user_id)
@@ -101,7 +97,6 @@ def update_user(
 def assign_user_roles(
     user_id: int,
     payload: AssignUserRolesRequest,
-    _: User = Depends(require_permissions("user:create")),
     db: Session = Depends(get_db),
 ):
     user = db.get(User, user_id)
@@ -124,7 +119,6 @@ def assign_user_roles(
 @router.post("/users/{user_id}/toggle-active")
 def toggle_user_active(
     user_id: int,
-    _: User = Depends(require_permissions("user:create")),
     db: Session = Depends(get_db),
 ):
     user = db.get(User, user_id)
@@ -141,7 +135,6 @@ def toggle_user_active(
 def reset_user_password(
     user_id: int,
     payload: ResetPasswordRequest,
-    _: User = Depends(require_permissions("user:create")),
     db: Session = Depends(get_db),
 ):
     user = db.get(User, user_id)
