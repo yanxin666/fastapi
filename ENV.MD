@@ -1,9 +1,11 @@
 # ENV.MD
 
 ## 用途
+
 本文档用于说明当前项目迁移到其他 Windows 电脑时，所需的系统环境、运行依赖、环境变量、初始化步骤与验证命令。
 
 项目类型：
+
 - 后端：FastAPI + SQLAlchemy + PostgreSQL + Alembic
 - 前端：React + TypeScript + Vite + Ant Design
 - 前端构建产物：`frontend/dist`，由 FastAPI 直接托管
@@ -11,16 +13,17 @@
 ---
 
 ## 1. Windows 机器基础环境
+
 建议目标机器至少具备以下软件：
 
-| 组件 | 当前环境版本 | 说明 |
-| --- | --- | --- |
-| Windows | Windows 10 Pro 10.0.19045 | 当前开发机系统 |
-| Python | 3.12.3 | 后端运行环境 |
-| Node.js | 24.14.1 | 前端构建与测试 |
-| npm | 11.11.0 | 前端包管理 |
-| PostgreSQL | 需安装本地或可访问实例 | 后端主数据库 |
-| Git | 建议安装 | 方便拉取与更新项目 |
+| 组件         | 当前环境版本                    | 说明        |
+|------------|---------------------------|-----------|
+| Windows    | Windows 10 Pro 10.0.19045 | 当前开发机系统   |
+| Python     | 3.12.3                    | 后端运行环境    |
+| Node.js    | 24.14.1                   | 前端构建与测试   |
+| npm        | 11.11.0                   | 前端包管理     |
+| PostgreSQL | 需安装本地或可访问实例               | 后端主数据库    |
+| Git        | 建议安装                      | 方便拉取与更新项目 |
 
 > 建议新机器优先安装与当前一致的大版本：Python 3.12.x、Node.js 24.x、npm 11.x。
 
@@ -29,6 +32,7 @@
 ## 2. 当前项目所需后端依赖
 
 ### 2.1 Python 虚拟环境
+
 在项目根目录执行：
 
 ```cmd
@@ -38,18 +42,21 @@ python -m pip install --upgrade pip setuptools wheel
 ```
 
 ### 2.2 安装 Python 依赖
+
 当前仓库已有：
+
 - `requirements.txt`
-- `requirements-win.txt`
 
 Windows 机器优先使用：
 
 ```cmd
-pip install -r requirements-win.txt
+pip install -r requirements.txt
 ```
 
 ### 2.3 额外说明
+
 当前代码实际运行还依赖以下核心包：
+
 - `SQLAlchemy==2.0.44`
 - `alembic==1.18.4`
 - `psycopg==3.2.12`
@@ -57,12 +64,11 @@ pip install -r requirements-win.txt
 - `PyJWT==2.10.1`
 
 其中：
+
 - `SQLAlchemy`：ORM 与数据库会话管理
 - `alembic`：数据库迁移
 - `psycopg` / `psycopg-binary`：PostgreSQL 驱动
 - `PyJWT`：JWT 编解码
-
-> 注意：当前仓库中的 `requirements.txt` / `requirements-win.txt` 与当前虚拟环境实际安装包并不完全一致。迁移机器时，建议以本文件第 7 节“当前虚拟环境实际安装快照”为准进行核对。
 
 ---
 
@@ -79,12 +85,14 @@ npm --prefix "D:/project/python/fastapi/frontend" install
 当前前端直接依赖与开发依赖如下：
 
 ### 3.1 前端运行依赖
+
 - `antd@6.3.5`
 - `react@19.2.5`
 - `react-dom@19.2.5`
 - `react-router-dom@7.14.0`
 
 ### 3.2 前端开发 / 构建 / 测试依赖
+
 - `@eslint/js@9.39.4`
 - `@testing-library/jest-dom@6.9.1`
 - `@testing-library/react@16.3.2`
@@ -107,13 +115,17 @@ npm --prefix "D:/project/python/fastapi/frontend" install
 ---
 
 ## 4. 数据库依赖
+
 项目当前使用 PostgreSQL。
 
 ### 4.1 当前连接方式
+
 代码默认数据库连接配置位于：
+
 - `app/core/config.py`
 
 配置项：
+
 - `APP_DATABASE_URL`
 
 连接串格式：
@@ -129,12 +141,14 @@ postgresql+psycopg://postgres:your_password@localhost:5432/postgre
 ```
 
 ### 4.2 迁移到新机器前需要准备
+
 - 已安装 PostgreSQL
 - 已创建目标数据库
 - 已确认用户名、密码、端口可用
 - 可通过 `APP_DATABASE_URL` 正确连接
 
 ### 4.3 初始化数据库结构
+
 安装完依赖并配置好 `.env` 后执行：
 
 ```cmd
@@ -144,7 +158,9 @@ postgresql+psycopg://postgres:your_password@localhost:5432/postgre
 ---
 
 ## 5. 环境变量
+
 项目配置使用：
+
 - 环境变量前缀：`APP_`
 - 配置文件：项目根目录 `.env`
 
@@ -165,58 +181,67 @@ APP_REFRESH_TOKEN_TTL_DAYS=7
 ```
 
 ### 5.1 配置项说明
-| 变量名 | 默认值 | 是否建议显式配置 | 说明 |
-| --- | --- | --- | --- |
-| `APP_APP_NAME` | `FastAPI Service` | 否 | 应用名称 |
-| `APP_APP_ENV` | `development` | 建议 | 运行环境标识 |
-| `APP_APP_VERSION` | `0.1.0` | 否 | 应用版本 |
-| `APP_API_V1_PREFIX` | `/api/v1` | 否 | API 前缀 |
-| `APP_DATABASE_URL` | 代码内有本地默认值 | **强烈建议** | PostgreSQL 连接串 |
-| `APP_JWT_SECRET_KEY` | `change-this-secret-in-production` | **强烈建议** | JWT 密钥 |
-| `APP_JWT_ALGORITHM` | `HS256` | 否 | JWT 算法 |
-| `APP_ACCESS_TOKEN_TTL_MINUTES` | `30` | 否 | access token 过期分钟数 |
-| `APP_REFRESH_TOKEN_TTL_DAYS` | `7` | 否 | refresh token 过期天数 |
+
+| 变量名                            | 默认值                                | 是否建议显式配置 | 说明                 |
+|--------------------------------|------------------------------------|----------|--------------------|
+| `APP_APP_NAME`                 | `FastAPI Service`                  | 否        | 应用名称               |
+| `APP_APP_ENV`                  | `development`                      | 建议       | 运行环境标识             |
+| `APP_APP_VERSION`              | `0.1.0`                            | 否        | 应用版本               |
+| `APP_API_V1_PREFIX`            | `/api/v1`                          | 否        | API 前缀             |
+| `APP_DATABASE_URL`             | 代码内有本地默认值                          | **强烈建议** | PostgreSQL 连接串     |
+| `APP_JWT_SECRET_KEY`           | `change-this-secret-in-production` | **强烈建议** | JWT 密钥             |
+| `APP_JWT_ALGORITHM`            | `HS256`                            | 否        | JWT 算法             |
+| `APP_ACCESS_TOKEN_TTL_MINUTES` | `30`                               | 否        | access token 过期分钟数 |
+| `APP_REFRESH_TOKEN_TTL_DAYS`   | `7`                                | 否        | refresh token 过期天数 |
 
 ---
 
 ## 6. Windows 新机器初始化步骤
 
 ### 6.1 拉取项目后初始化后端
+
 ```cmd
 cd /D D:\project\python\fastapi
 python -m venv .venv
 .venv\Scripts\activate.bat
 python -m pip install --upgrade pip setuptools wheel
-pip install -r requirements-win.txt
+pip install -r requirements.txt
 pip install SQLAlchemy==2.0.44 alembic==1.18.4 psycopg==3.2.12 psycopg-binary==3.2.12 PyJWT==2.10.1
 ```
 
 ### 6.2 配置 `.env`
+
 在项目根目录创建 `.env`，至少配置：
+
 - `APP_DATABASE_URL`
 - `APP_JWT_SECRET_KEY`
 
 ### 6.3 初始化数据库
+
 ```cmd
 .venv\Scripts\python.exe -m alembic upgrade head
 ```
 
 ### 6.4 安装前端依赖
+
 ```cmd
 npm --prefix "D:/project/python/fastapi/frontend" install
 ```
 
 ### 6.5 构建前端
+
 ```cmd
 npm --prefix "D:/project/python/fastapi/frontend" run build
 ```
 
 ### 6.6 启动后端
+
 ```cmd
 .venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 ### 6.7 前端开发模式（可选）
+
 如果只做前端开发，也可以单独启动：
 
 ```cmd
@@ -226,6 +251,7 @@ npm --prefix "D:/project/python/fastapi/frontend" run dev
 ---
 
 ## 7. 当前虚拟环境实际安装快照（Python）
+
 以下为当前机器 `.venv` 中实际安装包版本，可作为迁移核对基准：
 
 ```text
@@ -301,6 +327,7 @@ wheel==0.46.3
 ---
 
 ## 8. 当前前端直接依赖快照（npm）
+
 以下为当前机器 `frontend` 目录直接依赖快照：
 
 ```text
@@ -333,21 +360,25 @@ vitest@4.1.4
 ## 9. 迁移完成后的验证命令
 
 ### 9.1 后端测试
+
 ```cmd
 "D:/project/python/fastapi/.venv/Scripts/python.exe" -m pytest "D:/project/python/fastapi/tests/test_auth_api.py" -q
 ```
 
 ### 9.2 前端测试
+
 ```cmd
 npm --prefix "D:/project/python/fastapi/frontend" test
 ```
 
 ### 9.3 前端构建
+
 ```cmd
 npm --prefix "D:/project/python/fastapi/frontend" run build
 ```
 
 ### 9.4 启动服务
+
 ```cmd
 "D:/project/python/fastapi/.venv/Scripts/python.exe" -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
@@ -355,7 +386,8 @@ npm --prefix "D:/project/python/fastapi/frontend" run build
 ---
 
 ## 10. 迁移注意事项
-- Windows 下不要安装 `uvloop`，当前项目已通过 `requirements-win.txt` 避开该依赖。
+
+- Windows 下不要安装 `uvloop`，当前项目已通过 `requirements.txt` 避开该依赖。
 - 若 PowerShell 激活虚拟环境时报执行策略错误，可执行：
 
 ```powershell
@@ -364,7 +396,7 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 - 只有执行过前端 `build` 后，FastAPI 才会直接托管最新的前端页面。
 - 如果数据库连接失败，优先检查：
-  - PostgreSQL 服务是否启动
-  - `APP_DATABASE_URL` 是否正确
-  - 数据库用户权限是否足够
-  - 目标数据库是否已创建
+    - PostgreSQL 服务是否启动
+    - `APP_DATABASE_URL` 是否正确
+    - 数据库用户权限是否足够
+    - 目标数据库是否已创建
