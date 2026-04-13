@@ -33,4 +33,10 @@ export const adminNavigationItems: AdminNavigationItem[] = [
     label: '权限列表',
     permission: ROUTE_POLICIES['/permissions'],
   },
+  {
+    key: '/customers',
+    path: '/customers',
+    label: '客户管理',
+    permission: ROUTE_POLICIES['/customers'],
+  },
 ]

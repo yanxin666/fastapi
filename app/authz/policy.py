@@ -162,6 +162,27 @@ def build_default_policy_resolver() -> PolicyResolver:
             permissions=(PermissionCode.PERMISSION_VIEW,)
         ),
         # 权限列表接口，需要 permission:view 权限
+        # ==================== 客户管理接口 ====================
+        "app.api.system.customers:list_customers": EndpointPolicy(
+            permissions=(PermissionCode.CUSTOMER_VIEW,)
+        ),
+        # 客户列表接口，需要 customer:view 权限
+        "app.api.system.customers:get_customer_detail": EndpointPolicy(
+            permissions=(PermissionCode.CUSTOMER_VIEW,)
+        ),
+        # 客户详情接口，需要 customer:view 权限
+        "app.api.system.customers:create_customer": EndpointPolicy(
+            permissions=(PermissionCode.CUSTOMER_CREATE,)
+        ),
+        # 创建客户接口，需要 customer:create 权限
+        "app.api.system.customers:update_customer": EndpointPolicy(
+            permissions=(PermissionCode.CUSTOMER_UPDATE,)
+        ),
+        # 编辑客户接口，需要 customer:update 权限
+        "app.api.system.customers:delete_customer": EndpointPolicy(
+            permissions=(PermissionCode.CUSTOMER_DELETE,)
+        ),
+        # 删除客户接口，需要 customer:delete 权限
     }
 
     # 创建并返回策略解析器

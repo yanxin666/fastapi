@@ -4,6 +4,7 @@ import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import { ROUTE_POLICIES, usePermissions, type PermissionCode } from '../lib/permissions'
 import { useAuth } from '../auth'
 import { AdminLayout } from '../layouts/AdminLayout'
+import { CustomersPage } from '../pages/CustomersPage'
 import { DashboardPage } from '../pages/DashboardPage'
 import { ForbiddenPage } from '../pages/ForbiddenPage'
 import { LoginPage } from '../pages/LoginPage'
@@ -88,6 +89,10 @@ export function AppRoutes() {
 
           <Route element={<PermissionRoute permission={ROUTE_POLICIES['/permissions']} />}>
             <Route path="permissions" element={<PermissionsPage />} />
+          </Route>
+
+          <Route element={<PermissionRoute permission={ROUTE_POLICIES['/customers']} />}>
+            <Route path="customers" element={<CustomersPage />} />
           </Route>
         </Route>
       </Route>

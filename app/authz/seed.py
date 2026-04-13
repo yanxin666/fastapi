@@ -22,6 +22,10 @@ _PERMISSION_DESCRIPTIONS: dict[PermissionCode, str] = {
     PermissionCode.ROLE_UPDATE: "更新角色信息、分配角色权限",
     PermissionCode.ROLE_DELETE: "删除角色",
     PermissionCode.PERMISSION_VIEW: "查看权限列表",
+    PermissionCode.CUSTOMER_VIEW: "查看客户列表和详情",
+    PermissionCode.CUSTOMER_CREATE: "创建客户",
+    PermissionCode.CUSTOMER_UPDATE: "编辑客户",
+    PermissionCode.CUSTOMER_DELETE: "删除客户（软删除）",
 }
 
 

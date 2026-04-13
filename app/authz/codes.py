@@ -39,3 +39,13 @@ class PermissionCode(StrEnum):
     # 权限管理相关权限
     PERMISSION_VIEW = "permission:view"
     """查看权限列表"""
+
+    # 客户管理相关权限
+    CUSTOMER_VIEW = "customer:view"
+    """查看客户列表和详情"""
+    CUSTOMER_CREATE = "customer:create"
+    """创建客户"""
+    CUSTOMER_UPDATE = "customer:update"
+    """编辑客户"""
+    CUSTOMER_DELETE = "customer:delete"
+    """删除客户（软删除）"""

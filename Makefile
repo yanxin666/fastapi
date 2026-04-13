@@ -25,7 +25,7 @@ else
 	VENV_PIP := $(VENV_DIR)/bin/pip
 endif
 
-.PHONY: help venv install-backend install-frontend install-all add-backend lock-backend run-backend run-frontend run-all-bg stop-backend stop-frontend run-all stop-all status seed-permissions
+.PHONY: help venv install-backend install-frontend install-all add-backend lock-backend run-backend run-frontend run-all-bg stop-backend stop-frontend run-all stop-all status seed-permissions import-customers
 
 help:
 	@echo "可用命令:"
@@ -43,6 +43,7 @@ help:
 	@echo "  make stop-all                      # 关闭前后端开发服务"
 	@echo "  make status                        # 查看前后端进程状态"
 	@echo "  make seed-permissions              # 同步权限码到数据库"
+	@echo "  make import-customers              # 从 CSV 导入客户数据到数据库"
 
 venv:
 	$(BOOTSTRAP_PYTHON) -m venv $(VENV_DIR)
@@ -138,3 +139,6 @@ else
 	else echo "frontend: 无 pid 文件"; fi
 endif
 
+
+import-customers:
+	$(VENV_PYTHON) scripts/import_customers.py
