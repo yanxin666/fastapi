@@ -1,6 +1,7 @@
 import { Spin } from 'antd'
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 
+import { ROUTE_POLICIES, usePermissions, type PermissionCode } from '../lib/permissions'
 import { useAuth } from '../auth'
 import { AdminLayout } from '../layouts/AdminLayout'
 import { DashboardPage } from '../pages/DashboardPage'
@@ -55,10 +56,10 @@ function ProtectedRoute() {
   return <Outlet />
 }
 
-function PermissionRoute({ permission }: { permission: string }) {
-  const { permissions } = useAuth()
+function PermissionRoute({ permission }: { permission: PermissionCode }) {
+  const perms = usePermissions()
 
-  if (!permissions.includes(permission)) {
+  if (!perms.has(permission)) {
     return <Navigate to="/403" replace />
   }
 
@@ -77,15 +78,15 @@ export function AppRoutes() {
           <Route index element={<DashboardPage />} />
           <Route path="403" element={<ForbiddenPage />} />
 
-          <Route element={<PermissionRoute permission="user:view" />}>
+          <Route element={<PermissionRoute permission={ROUTE_POLICIES['/users']} />}>
             <Route path="users" element={<UsersPage />} />
           </Route>
 
-          <Route element={<PermissionRoute permission="role:view" />}>
+          <Route element={<PermissionRoute permission={ROUTE_POLICIES['/roles']} />}>
             <Route path="roles" element={<RolesPage />} />
           </Route>
 
-          <Route element={<PermissionRoute permission="permission:view" />}>
+          <Route element={<PermissionRoute permission={ROUTE_POLICIES['/permissions']} />}>
             <Route path="permissions" element={<PermissionsPage />} />
           </Route>
         </Route>

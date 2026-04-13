@@ -2,17 +2,19 @@ import { Button, Layout, Menu, Space, Typography } from 'antd'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 
 import { useAuth } from '../auth'
+import { usePermissions } from '../lib/permissions'
 import { adminNavigationItems } from '../router/adminNavigation'
 
 const { Content, Header, Sider } = Layout
 
 export function AdminLayout() {
-  const { logout, permissions, user } = useAuth()
+  const { logout, user } = useAuth()
+  const perms = usePermissions()
   const location = useLocation()
   const navigate = useNavigate()
 
   const visibleNavigationItems = adminNavigationItems.filter(
-    (item) => !item.permission || permissions.includes(item.permission),
+    (item) => !item.permission || perms.has(item.permission),
   )
 
   const selectedKey =

@@ -5,6 +5,7 @@ from app.authz.policy import (
     build_default_policy_resolver,
 )
 from app.authz.router import PolicyRouter
+from app.authz.seed import seed_permissions
 
 __all__ = [
     "PermissionCode",
@@ -12,4 +13,5 @@ __all__ = [
     "PolicyResolver",
     "PolicyRouter",
     "build_default_policy_resolver",
+    "seed_permissions",
 ]

@@ -9,7 +9,12 @@
 本文件用于约束 Claude / AI 在本仓库中的默认工作方式。
 
 ## 强约束
-1. 涉及行为变更时，优先使用 TDD。
+1. **涉及数据库写操作的命令，执行前必须告知风险并等待用户确认。**
+   - 包括但不限于：运行 pytest、执行 alembic 迁移、运行 seed 脚本、执行任何 SQL
+   - 必须先说明：会影响哪个数据库、是否会修改或删除现有数据
+   - 用户明确同意后才能执行，绝不擅自运行
+
+2. 涉及行为变更时，优先使用 TDD。
    - 先写或先改测试
    - 先确认测试因预期原因失败
    - 再做最小实现让测试通过
@@ -176,6 +181,9 @@ router_prefix_setting = "admin_api_prefix"
 
 ## 验证命令
 ### 后端测试
+
+> **警告**：当前测试会 TRUNCATE 数据库表（清空数据），使用的是 .env 中的 APP_DATABASE_URL 指向的数据库。运行前必须确认用户已知晓风险。
+
 ```bash
 "D:/project/python/fastapi/.venv/Scripts/python.exe" -m pytest "D:/project/python/fastapi/tests/test_auth_api.py" -q
 ```

@@ -151,6 +151,10 @@ def require_permissions(*required_permissions: str):
         Raises:
             HTTPException: 403 权限不足
         """
+        # 超级用户拥有全部权限，跳过权限查询以减少数据库访问
+        if user.is_superuser:
+            return user
+
         # 查询当前用户拥有的所有权限码
         # 通过多对多关系：User -> Role -> Permission
         permissions = set(

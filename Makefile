@@ -25,7 +25,7 @@ else
 	VENV_PIP := $(VENV_DIR)/bin/pip
 endif
 
-.PHONY: help venv install-backend install-frontend install-all add-backend lock-backend run-backend run-frontend run-all-bg stop-backend stop-frontend run-all stop-all status
+.PHONY: help venv install-backend install-frontend install-all add-backend lock-backend run-backend run-frontend run-all-bg stop-backend stop-frontend run-all stop-all status seed-permissions
 
 help:
 	@echo "可用命令:"
@@ -42,6 +42,7 @@ help:
 	@echo "  make stop-frontend                 # 关闭前端开发服务"
 	@echo "  make stop-all                      # 关闭前后端开发服务"
 	@echo "  make status                        # 查看前后端进程状态"
+	@echo "  make seed-permissions              # 同步权限码到数据库"
 
 venv:
 	$(BOOTSTRAP_PYTHON) -m venv $(VENV_DIR)
@@ -113,6 +114,15 @@ run-all:
 	@echo "请分别在两个终端执行: make run-backend 和 make run-frontend"
 
 stop-all: stop-backend stop-frontend
+
+seed-permissions:
+	$(VENV_PYTHON) -c "from app.core.db import get_session_factory; from app.authz.seed import seed_permissions; db = get_session_factory()(); \
+	try: \
+		seed_permissions(db); db.commit(); print('权限码已同步到数据库'); \
+	except Exception as e: \
+		db.rollback(); print(f'同步失败: {e}'); raise; \
+	finally: \
+		db.close()"
 
 status:
 ifeq ($(OS),Windows_NT)

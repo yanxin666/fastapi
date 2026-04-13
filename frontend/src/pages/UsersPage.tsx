@@ -31,6 +31,7 @@ import {
   type UpdateUserInput,
   type UserListItem,
 } from '../lib/api-client'
+import { useCan } from '../lib/permissions'
 
 type UsersState = {
   status: 'loading' | 'success' | 'error'
@@ -62,8 +63,10 @@ function getErrorMessage(error: unknown, fallbackMessage: string): string {
 
 export function UsersPage() {
   const { message } = AntApp.useApp()
-  const { accessToken, logout, permissions } = useAuth()
-  const canManageUsers = permissions.includes('user:create')
+  const { accessToken, logout } = useAuth()
+  const can = useCan()
+  // 当前 user:create 覆盖所有用户管理操作，将来拆分粒度时只需修改 OPERATION_POLICIES 映射
+  const canManageUsers = can('USER_CREATE')
 
   const [usersState, setUsersState] = useState<UsersState>({
     status: 'loading',

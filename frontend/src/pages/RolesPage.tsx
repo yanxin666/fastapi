@@ -29,6 +29,7 @@ import {
   type RoleListItem,
   type UpdateRoleInput,
 } from '../lib/api-client'
+import { useCan } from '../lib/permissions'
 
 type RolesState = {
   status: 'loading' | 'success' | 'error'
@@ -66,11 +67,12 @@ function getPermissionGroupKey(permissionCode: string): string {
 
 export function RolesPage() {
   const { message } = AntApp.useApp()
-  const { accessToken, logout, permissions } = useAuth()
-  const canCreateRoles = permissions.includes('role:create')
-  const canUpdateRoles = permissions.includes('role:update')
-  const canDeleteRoles = permissions.includes('role:delete')
-  const canViewPermissions = permissions.includes('permission:view')
+  const { accessToken, logout } = useAuth()
+  const can = useCan()
+  const canCreateRoles = can('ROLE_CREATE')
+  const canUpdateRoles = can('ROLE_EDIT')
+  const canDeleteRoles = can('ROLE_DELETE')
+  const canViewPermissions = can('PERMISSION_VIEW')
 
   const [rolesState, setRolesState] = useState<RolesState>({
     status: 'loading',
