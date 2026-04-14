@@ -11,7 +11,6 @@
 
 from datetime import datetime, timezone
 
-from fastapi import Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
@@ -21,6 +20,7 @@ from app.core.db import get_db
 from app.middleware.jwt import get_current_user
 from app.models.customer import Customer
 from app.models.user import User
+from fastapi import Depends, HTTPException, Query, status
 
 router = PolicyRouter(tags=["system"])
 router_prefix_setting = "admin_api_prefix"
@@ -356,7 +356,9 @@ def _serialize_customer(customer: Customer, current_user: User) -> dict[str, obj
     非超级管理员的手机号脱敏展示，保护敏感信息。
     """
     # 超级管理员看原始手机号，其他用户看脱敏后的
-    phone_value = customer.phone if current_user.is_superuser else _mask_phone(customer.phone)
+    phone_value = (
+        customer.phone if current_user.is_superuser else _mask_phone(customer.phone)
+    )
 
     return {
         "id": customer.id,
@@ -388,7 +390,9 @@ def _serialize_customer(customer: Customer, current_user: User) -> dict[str, obj
         # 分配信息
         "assign_method": customer.assign_method,
         "assign_type": customer.assign_type,
-        "assigned_at": customer.assigned_at.isoformat() if customer.assigned_at else None,
+        "assigned_at": (
+            customer.assigned_at.isoformat() if customer.assigned_at else None
+        ),
         "creator": customer.creator,
         "creator_org": customer.creator_org,
         # 咨询信息
@@ -396,8 +400,16 @@ def _serialize_customer(customer: Customer, current_user: User) -> dict[str, obj
         "last_consultant": customer.last_consultant,
         "first_assign_org": customer.first_assign_org,
         "first_assign_person": customer.first_assign_person,
-        "first_assign_time": customer.first_assign_time.isoformat() if customer.first_assign_time else None,
-        "last_first_consult_time": customer.last_first_consult_time.isoformat() if customer.last_first_consult_time else None,
+        "first_assign_time": (
+            customer.first_assign_time.isoformat()
+            if customer.first_assign_time
+            else None
+        ),
+        "last_first_consult_time": (
+            customer.last_first_consult_time.isoformat()
+            if customer.last_first_consult_time
+            else None
+        ),
         "last_first_consult_person": customer.last_first_consult_person,
         # 统计追踪
         "registration_count": customer.registration_count,

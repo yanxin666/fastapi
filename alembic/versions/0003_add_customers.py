@@ -83,9 +83,7 @@ def upgrade() -> None:
         sa.Column("first_assign_org", sa.String(64), nullable=True),
         sa.Column("first_assign_person", sa.String(64), nullable=True),
         sa.Column("first_assign_time", sa.DateTime(timezone=True), nullable=True),
-        sa.Column(
-            "last_first_consult_time", sa.DateTime(timezone=True), nullable=True
-        ),
+        sa.Column("last_first_consult_time", sa.DateTime(timezone=True), nullable=True),
         sa.Column("last_first_consult_person", sa.String(64), nullable=True),
         # 统计追踪
         sa.Column(
@@ -162,9 +160,7 @@ def upgrade() -> None:
 def downgrade() -> None:
     # 删除触发器和函数（PostgreSQL）
     op.execute("DROP TRIGGER IF EXISTS update_customers_updated_at ON customers")
-    op.execute(
-        "DROP FUNCTION IF EXISTS update_customers_updated_at() CASCADE"
-    )
+    op.execute("DROP FUNCTION IF EXISTS update_customers_updated_at() CASCADE")
 
     op.drop_index(op.f("ix_customers_created_at"), table_name="customers")
     op.drop_index(op.f("ix_customers_is_deleted"), table_name="customers")

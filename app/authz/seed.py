@@ -44,9 +44,7 @@ def seed_permissions(db: Session) -> list[Permission]:
         list[Permission]: 数据库中所有权限对象
     """
     # 查询数据库中已有的权限码，避免重复插入
-    existing = {
-        p.code: p for p in db.execute(select(Permission)).scalars().all()
-    }
+    existing = {p.code: p for p in db.execute(select(Permission)).scalars().all()}
 
     for code in PermissionCode:
         permission = existing.get(code)
