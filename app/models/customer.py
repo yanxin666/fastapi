@@ -7,7 +7,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base
@@ -28,6 +28,12 @@ class Customer(Base):
     # ==================== 主键 ====================
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     """客户 ID，主键，自增"""
+
+    # ==================== 认领信息 ====================
+    user_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("users.id"), nullable=True, index=True,
+    )
+    """当前认领用户 ID，FK 到 users 表，NULL 表示未被认领（公海客户）"""
 
     # ==================== 基本信息 ====================
     name: Mapped[str | None] = mapped_column(String(64), nullable=True)

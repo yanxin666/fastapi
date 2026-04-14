@@ -36,7 +36,19 @@ export const adminNavigationItems: AdminNavigationItem[] = [
   {
     key: '/customers',
     path: '/customers',
-    label: '客户管理',
+    label: '客户公海',
     permission: ROUTE_POLICIES['/customers'],
+  },
+  {
+    key: '/my-customers',
+    path: '/my-customers',
+    label: '我的客户',
+    permission: ROUTE_POLICIES['/my-customers'],
+  },
+  {
+    key: '/claim-strategies',
+    path: '/claim-strategies',
+    label: '认领策略',
+    permission: ROUTE_POLICIES['/claim-strategies'],
   },
 ]

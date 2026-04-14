@@ -183,6 +183,56 @@ def build_default_policy_resolver() -> PolicyResolver:
             permissions=(PermissionCode.CUSTOMER_DELETE,)
         ),
         # 删除客户接口，需要 customer:delete 权限
+        "app.api.system.customers:claim_customer": EndpointPolicy(
+            permissions=(PermissionCode.CUSTOMER_CLAIM,)
+        ),
+        # 认领客户接口，需要 customer:claim 权限
+        "app.api.system.customers:batch_claim_customers": EndpointPolicy(
+            permissions=(PermissionCode.CUSTOMER_CLAIM,)
+        ),
+        # 批量认领客户接口，需要 customer:claim 权限
+        "app.api.system.customers:release_customer": EndpointPolicy(
+            permissions=(PermissionCode.CUSTOMER_CLAIM,)
+        ),
+        # 释放认领接口，需要 customer:claim 权限
+        "app.api.system.customers:batch_release_customers": EndpointPolicy(
+            permissions=(PermissionCode.CUSTOMER_CLAIM,)
+        ),
+        # 批量释放认领接口，需要 customer:claim 权限
+        "app.api.system.customers:assign_customer": EndpointPolicy(
+            permissions=(PermissionCode.CUSTOMER_ASSIGN,)
+        ),
+        # 主管调配客户接口，需要 customer:assign 权限
+        # ==================== 认领策略接口 ====================
+        "app.api.system.strategies:list_strategies": EndpointPolicy(
+            permissions=(PermissionCode.STRATEGY_VIEW,)
+        ),
+        # 认领策略列表接口，需要 strategy:view 权限
+        "app.api.system.strategies:create_strategy": EndpointPolicy(
+            permissions=(PermissionCode.STRATEGY_CREATE,)
+        ),
+        # 创建认领策略接口，需要 strategy:create 权限
+        "app.api.system.strategies:update_strategy": EndpointPolicy(
+            permissions=(PermissionCode.STRATEGY_CREATE,)
+        ),
+        # 编辑认领策略接口，需要 strategy:create 权限
+        "app.api.system.strategies:delete_strategy": EndpointPolicy(
+            permissions=(PermissionCode.STRATEGY_CREATE,)
+        ),
+        # 删除认领策略接口，需要 strategy:create 权限
+        # ==================== 跟进记录接口 ====================
+        "app.api.system.followups:list_followups": EndpointPolicy(
+            permissions=(PermissionCode.FOLLOWUP_VIEW,)
+        ),
+        # 跟进记录列表接口，需要 followup:view 权限
+        "app.api.system.followups:create_followup": EndpointPolicy(
+            permissions=(PermissionCode.FOLLOWUP_CREATE,)
+        ),
+        # 创建跟进记录接口，需要 followup:create 权限
+        "app.api.system.followups:delete_followup": EndpointPolicy(
+            permissions=(PermissionCode.FOLLOWUP_CREATE,)
+        ),
+        # 删除跟进记录接口，需要 followup:create 权限
     }
 
     # 创建并返回策略解析器

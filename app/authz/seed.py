@@ -26,6 +26,12 @@ _PERMISSION_DESCRIPTIONS: dict[PermissionCode, str] = {
     PermissionCode.CUSTOMER_CREATE: "创建客户",
     PermissionCode.CUSTOMER_UPDATE: "编辑客户",
     PermissionCode.CUSTOMER_DELETE: "删除客户（软删除）",
+    PermissionCode.CUSTOMER_CLAIM: "从公海认领客户、释放认领",
+    PermissionCode.CUSTOMER_ASSIGN: "主管调配：将客户分配给指定用户",
+    PermissionCode.STRATEGY_VIEW: "查看认领策略",
+    PermissionCode.STRATEGY_CREATE: "创建、编辑、删除认领策略",
+    PermissionCode.FOLLOWUP_VIEW: "查看跟进记录",
+    PermissionCode.FOLLOWUP_CREATE: "创建、删除跟进记录",
 }
 
 

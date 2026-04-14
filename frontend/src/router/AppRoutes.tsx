@@ -4,10 +4,12 @@ import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import { ROUTE_POLICIES, usePermissions, type PermissionCode } from '../lib/permissions'
 import { useAuth } from '../auth'
 import { AdminLayout } from '../layouts/AdminLayout'
+import { ClaimStrategiesPage } from '../pages/ClaimStrategiesPage'
 import { CustomersPage } from '../pages/CustomersPage'
 import { DashboardPage } from '../pages/DashboardPage'
 import { ForbiddenPage } from '../pages/ForbiddenPage'
 import { LoginPage } from '../pages/LoginPage'
+import { MyCustomersPage } from '../pages/MyCustomersPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { PermissionsPage } from '../pages/PermissionsPage'
 import { RolesPage } from '../pages/RolesPage'
@@ -93,6 +95,14 @@ export function AppRoutes() {
 
           <Route element={<PermissionRoute permission={ROUTE_POLICIES['/customers']} />}>
             <Route path="customers" element={<CustomersPage />} />
+          </Route>
+
+          <Route element={<PermissionRoute permission={ROUTE_POLICIES['/my-customers']} />}>
+            <Route path="my-customers" element={<MyCustomersPage />} />
+          </Route>
+
+          <Route element={<PermissionRoute permission={ROUTE_POLICIES['/claim-strategies']} />}>
+            <Route path="claim-strategies" element={<ClaimStrategiesPage />} />
           </Route>
         </Route>
       </Route>

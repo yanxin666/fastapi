@@ -49,3 +49,19 @@ class PermissionCode(StrEnum):
     """编辑客户"""
     CUSTOMER_DELETE = "customer:delete"
     """删除客户（软删除）"""
+    CUSTOMER_CLAIM = "customer:claim"
+    """从公海认领客户、释放认领"""
+    CUSTOMER_ASSIGN = "customer:assign"
+    """主管调配：将客户分配给指定用户"""
+
+    # 认领策略相关权限
+    STRATEGY_VIEW = "strategy:view"
+    """查看认领策略"""
+    STRATEGY_CREATE = "strategy:create"
+    """创建、编辑、删除认领策略"""
+
+    # 跟进记录相关权限
+    FOLLOWUP_VIEW = "followup:view"
+    """查看跟进记录"""
+    FOLLOWUP_CREATE = "followup:create"
+    """创建、删除跟进记录"""
