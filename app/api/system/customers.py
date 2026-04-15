@@ -763,9 +763,9 @@ def _serialize_customer(
         claim_user_names: 认领人用户名映射 {user_id: username}，列表接口批量传入避免 N+1
     """
     # 超级管理员看原始手机号，其他用户看脱敏后的
-    phone_value = (
-        customer.phone if current_user.is_superuser else _mask_phone(customer.phone)
-    )
+    # phone_value = (
+    #     customer.phone if current_user.is_superuser else _mask_phone(customer.phone)
+    # )
 
     # 认领人用户名：优先从批量映射取，否则单独查询（详情接口场景）
     claim_user_name = None
@@ -779,9 +779,10 @@ def _serialize_customer(
         "user_id": customer.user_id,
         "claim_status": "claimed" if customer.user_id is not None else "unclaimed",
         "claim_user_name": claim_user_name,
+        "followup_at": customer.followup_at.isoformat() if customer.followup_at else None,
         # 基本信息
         "name": customer.name,
-        "phone": phone_value,
+        "phone": customer.phone,
         "wechat": customer.wechat,
         "wechat_status": customer.wechat_status,
         "qq": customer.qq,

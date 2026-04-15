@@ -379,11 +379,11 @@ export function MyCustomersPage() {
       render: (value: string | null) => formatDateTime(value),
     },
     {
-      title: '下次跟进',
-      key: 'next_followup',
-      width: 100,
-      // 此列暂无数据源，后续可从后端扩展
-      render: () => '-',
+      title: '最新跟进',
+      dataIndex: 'followup_at',
+      key: 'followup_at',
+      width: 170,
+      render: (value: string | null) => formatDateTime(value),
     },
     {
       title: '操作',

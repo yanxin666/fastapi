@@ -737,6 +737,13 @@ export function CustomersPage() {
       },
     },
     {
+      title: '最新跟进',
+      dataIndex: 'followup_at',
+      key: 'followup_at',
+      width: 170,
+      render: (value: string | null) => formatDateTime(value),
+    },
+    {
       title: '反馈状态',
       dataIndex: 'feedback_status',
       key: 'feedback_status',

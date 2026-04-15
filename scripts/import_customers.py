@@ -1,22 +1,26 @@
 """
 客户数据导入脚本
 
-从 CSV 文件导入客户数据到数据库。
-使用方式：将 doc/customer.xlsx 另存为 doc/customer.csv（UTF-8 编码），然后运行本脚本。
+从 CSV 或 XLSX 文件导入客户数据到数据库。
+
+使用方式：
+    # 导入单个文件（csv 或 xlsx）
+    .venv/Scripts/python.exe scripts/import_customers.py doc/customer2.xlsx
+
+    # 导入多个文件
+    .venv/Scripts/python.exe scripts/import_customers.py doc/customer2.xlsx doc/customer3.xlsx
+
+    # 无参数时导入默认文件
+    .venv/Scripts/python.exe scripts/import_customers.py
 
 功能：
-- 自动映射 CSV 列名到数据库字段名
+- 自动映射列名到数据库字段名
+- 支持 CSV 和 XLSX 两种文件格式
 - 处理日期格式转换
 - 处理空值（空字符串转为 None）
 - 批量插入到 customers 表
 - 跳过表头行和字段说明行
 - 支持断点续导（跳过已存在的 original_id 记录）
-
-使用示例：
-    # 从项目根目录执行
-    .venv/Scripts/python.exe scripts/import_customers.py
-    # 或通过 Makefile
-    make import-customers
 """
 
 import csv
@@ -34,11 +38,13 @@ from sqlalchemy.orm import Session
 from app.core.db import get_session_factory
 from app.models.customer import Customer
 
-# CSV 文件路径（默认从 doc/customer.csv 读取）
-DEFAULT_CSV_PATH = PROJECT_ROOT / "doc" / "customer.csv"
+# 默认导入文件列表（无命令行参数时使用）
+DEFAULT_FILES = [
+    PROJECT_ROOT / "doc" / "customer.csv",
+    PROJECT_ROOT / "doc" / "customer.xlsx",
+]
 
-# CSV 列名 → 数据库字段名的映射
-# 用户需将 xlsx 另存为 csv，列名应与 xlsx 表头一致
+# CSV/XLSX 列名 → 数据库字段名的映射
 COLUMN_MAPPING: dict[str, str] = {
     "姓名": "name",
     "联系电话": "phone",
@@ -174,11 +180,11 @@ def row_to_customer_data(
     header_map: dict[int, str],
 ) -> dict[str, object]:
     """
-    将 CSV 行数据转换为 Customer 模型可接受的字段字典
+    将行数据转换为 Customer 模型可接受的字段字典
 
     Args:
-        row: CSV 行数据（列名→值的字典）
-        header_map: CSV 列名→数据库字段名的映射
+        row: 行数据（列名→值的字典）
+        header_map: 列名→数据库字段名的映射
 
     Returns:
         字段名字典，可直接传给 Customer(**data)
@@ -194,20 +200,90 @@ def row_to_customer_data(
     return data
 
 
-def import_customers(csv_path: Path | None = None) -> None:
+def read_xlsx(path: Path) -> list[dict[str, str]]:
     """
-    执行客户数据导入
+    读取 XLSX 文件，返回行列表（每行为 {列名: 值} 字典）
+
+    所有单元格值转为字符串，与 CSV DictReader 格式保持一致。
 
     Args:
-        csv_path: CSV 文件路径，默认为 doc/customer.csv
-    """
-    if csv_path is None:
-        csv_path = DEFAULT_CSV_PATH
+        path: XLSX 文件路径
 
-    if not csv_path.exists():
-        print(f"错误: CSV 文件不存在: {csv_path}")
-        print("请将 doc/customer.xlsx 另存为 doc/customer.csv（UTF-8 编码）后再运行")
-        sys.exit(1)
+    Returns:
+        行数据列表，首行为表头已跳过
+    """
+    from openpyxl import load_workbook
+
+    wb = load_workbook(filename=str(path), data_only=True)
+    ws = wb.active
+
+    rows = list(ws.iter_rows(values_only=True))
+    wb.close()
+
+    if not rows:
+        return []
+
+    # 首行为表头
+    headers = [str(h).strip() if h is not None else "" for h in rows[0]]
+    result: list[dict[str, str]] = []
+
+    for row in rows[1:]:
+        row_dict: dict[str, str] = {}
+        for i, cell in enumerate(row):
+            if i < len(headers) and headers[i]:
+                # 将所有值转为字符串，空值保持空字符串
+                row_dict[headers[i]] = str(cell) if cell is not None else ""
+        result.append(row_dict)
+
+    return result
+
+
+def read_csv(path: Path) -> list[dict[str, str]]:
+    """
+    读取 CSV 文件，返回行列表（每行为 {列名: 值} 字典）
+
+    Args:
+        path: CSV 文件路径
+
+    Returns:
+        行数据列表
+    """
+    result: list[dict[str, str]] = []
+    with open(path, "r", encoding="utf-8-sig") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            result.append(dict(row))
+    return result
+
+
+def import_file(file_path: Path) -> None:
+    """
+    导入单个文件到数据库
+
+    根据文件后缀自动选择 CSV 或 XLSX 读取方式。
+
+    Args:
+        file_path: 文件路径
+    """
+    if not file_path.exists():
+        print(f"错误: 文件不存在: {file_path}")
+        return
+
+    suffix = file_path.suffix.lower()
+
+    if suffix == ".xlsx":
+        print(f"\n读取 XLSX 文件: {file_path}")
+        rows = read_xlsx(file_path)
+    elif suffix == ".csv":
+        print(f"\n读取 CSV 文件: {file_path}")
+        rows = read_csv(file_path)
+    else:
+        print(f"错误: 不支持的文件格式: {suffix}（仅支持 .csv 和 .xlsx）")
+        return
+
+    if not rows:
+        print("  文件为空，跳过")
+        return
 
     SessionFactory = get_session_factory()
     db: Session = SessionFactory()
@@ -222,78 +298,84 @@ def import_customers(csv_path: Path | None = None) -> None:
             .all()
         )
 
-        with open(csv_path, "r", encoding="utf-8-sig") as f:
-            reader = csv.DictReader(f)
+        # 获取列头并构建映射
+        first_row = rows[0]
+        header_map: dict[str, str] = {}
+        unknown_cols: list[str] = []
 
-            # 验证 CSV 列名是否在映射表中
-            csv_headers = reader.fieldnames or []
-            header_map: dict[str, str] = {}
-            unknown_cols: list[str] = []
+        for col in first_row.keys():
+            if col in COLUMN_MAPPING:
+                header_map[col] = COLUMN_MAPPING[col]
+            elif col.strip():
+                unknown_cols.append(col)
 
-            for col in csv_headers:
-                if col in COLUMN_MAPPING:
-                    header_map[col] = COLUMN_MAPPING[col]
-                elif col.strip():
-                    # 忽略的列（如"表头"列）
-                    unknown_cols.append(col)
+        if unknown_cols:
+            print(f"  提示: 以下列未映射，将被忽略: {unknown_cols}")
 
-            if unknown_cols:
-                print(f"提示: 以下 CSV 列未映射，将被忽略: {unknown_cols}")
+        imported_count = 0
+        skipped_count = 0
+        error_count = 0
 
-            imported_count = 0
-            skipped_count = 0
-            error_count = 0
+        for row in rows:
+            # 跳过空行（所有值都为空字符串或 None）
+            if not any(v for v in row.values() if v):
+                continue
 
-            for row_num, row in enumerate(reader, start=2):
-                # 跳过空行
-                if not any(row.values()):
-                    continue
+            data = row_to_customer_data(row, header_map)
 
-                # 跳过字段说明行（包含换行符的枚举值行，Excel 最后一行常是这种行）
-                if any("\n" in str(v) for v in row.values()):
-                    continue
+            # 如果没有有效数据，跳过该行
+            if not data:
+                continue
 
-                data = row_to_customer_data(row, header_map)
+            # 通过 original_id 去重，跳过已导入的记录
+            original_id = data.get("original_id")
+            if original_id and original_id in existing_ids:
+                skipped_count += 1
+                continue
 
-                # 如果没有有效数据，跳过该行
-                if not data:
-                    continue
+            try:
+                customer = Customer(**data)
+                db.add(customer)
+                imported_count += 1
 
-                # 通过 original_id 去重，跳过已导入的记录
-                original_id = data.get("original_id")
-                if original_id and original_id in existing_ids:
-                    skipped_count += 1
-                    continue
+                # 每处理 100 条提交一次，减少内存占用
+                if imported_count % 100 == 0:
+                    db.commit()
+                    print(f"  已导入 {imported_count} 条...")
+            except Exception as e:
+                error_count += 1
+                print(f"  导入失败: {e}")
+                db.rollback()
 
-                try:
-                    customer = Customer(**data)
-                    db.add(customer)
-                    imported_count += 1
+        # 提交剩余记录
+        db.commit()
 
-                    # 每处理 100 条提交一次，减少内存占用
-                    if imported_count % 100 == 0:
-                        db.commit()
-                        print(f"  已导入 {imported_count} 条...")
-                except Exception as e:
-                    error_count += 1
-                    print(f"  第 {row_num} 行导入失败: {e}")
-                    db.rollback()
-
-            # 提交剩余记录
-            db.commit()
-
-        print(f"\n导入完成:")
-        print(f"  成功导入: {imported_count} 条")
-        print(f"  跳过（已存在）: {skipped_count} 条")
-        print(f"  失败: {error_count} 条")
+        print(f"  导入完成: 成功 {imported_count} 条, 跳过 {skipped_count} 条, 失败 {error_count} 条")
 
     except Exception as e:
         db.rollback()
-        print(f"导入失败: {e}")
+        print(f"  导入失败: {e}")
         raise
     finally:
         db.close()
 
 
+def main() -> None:
+    """主入口：解析命令行参数，依次导入文件"""
+    if len(sys.argv) > 1:
+        # 命令行指定了文件
+        files = [Path(arg) for arg in sys.argv[1:]]
+    else:
+        # 无参数时使用默认文件列表
+        files = DEFAULT_FILES
+
+    print(f"准备导入 {len(files)} 个文件")
+
+    for f in files:
+        import_file(f)
+
+    print("\n全部文件导入完毕")
+
+
 if __name__ == "__main__":
-    import_customers()
+    main()

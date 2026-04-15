@@ -134,6 +134,10 @@ def create_followup(
         next_followup_time=payload.next_followup_time,
     )
     db.add(record)
+
+    # 同步更新客户的最新跟进日期
+    customer.followup_at = payload.contact_time
+
     db.commit()
     db.refresh(record)
 

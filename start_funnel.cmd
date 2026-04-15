@@ -5,7 +5,7 @@ REM ====== Config ======
 set "PROJECT_DIR=D:\project\python\fastapi"
 set "PYTHON_EXE=%PROJECT_DIR%\.venv\Scripts\python.exe"
 set "APP_MODULE=app.main:app"
-set "PORT=8000"
+set "PORT=8001"
 
 echo [1/5] Checking project directory...
 if not exist "%PROJECT_DIR%" (
@@ -36,24 +36,49 @@ timeout /t 3 /nobreak >nul
 
 echo [5/5] Enabling Tailscale Funnel...
 tailscale funnel reset >nul 2>nul
-tailscale funnel %PORT%
+tailscale serve reset >nul 2>nul
+
+tailscale serve --bg http://127.0.0.1:%PORT%
 if errorlevel 1 (
-  echo [ERROR] Failed to enable funnel.
+  echo [ERROR] Failed to configure tailscale serve for port %PORT%.
+  echo Run: tailscale status
+  exit /b 1
+)
+
+tailscale funnel --bg %PORT%
+if errorlevel 1 (
+  echo [ERROR] Failed to enable tailscale funnel on port %PORT%.
   echo Run these checks:
   echo   tailscale status
+  echo   tailscale serve status
   echo   tailscale funnel status
+  exit /b 1
+)
+
+set "FUNNEL_URL="
+for /f "tokens=* delims=" %%L in ('tailscale funnel status ^| findstr /I "https://"') do (
+  set "FUNNEL_URL=%%L"
+)
+
+if not defined FUNNEL_URL (
+  echo [ERROR] Funnel appears not configured. tailscale reported no public HTTPS URL.
+  echo tailscale funnel status output:
+  tailscale funnel status
   exit /b 1
 )
 
 echo.
 echo ====== Done ======
 echo App local:   http://127.0.0.1:%PORT%
+echo Share URL:   !FUNNEL_URL!
 echo Funnel info:
 tailscale funnel status
 echo.
 echo Tips:
 echo - Stop app: close window "FastAPI-Uvicorn"
 echo - Disable funnel: tailscale funnel reset
+echo - Disable serve: tailscale serve reset
 echo - Check serving: tailscale serve status
 
+echo.
 endlocal
