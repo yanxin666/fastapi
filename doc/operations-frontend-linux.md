@@ -119,12 +119,12 @@ ls -la /opt/crm/frontend/dist/
 
 ## 4. 部署方式 A：服务器上构建
 
-适用于服务器已安装 Node.js 的情况。
+适用于服务器已安装 Node.js 的情况。前端源码通过 Git 同步到服务器。
 
 ### 首次部署
 
 ```bash
-# 1. 确认前端源码已复制到服务器
+# 1. 前端源码已随 git clone 到 /opt/crm/frontend
 ls /opt/crm/frontend/package.json
 
 # 2. 安装依赖
@@ -146,8 +146,9 @@ sudo chown -R www-data:www-data /opt/crm/frontend/dist
 ### 日常更新
 
 ```bash
-# 1. 更新前端源码（从部署脚本或手动复制）
-sudo cp -r app /opt/crm/  # 如果前端源码随 app 一起更新
+# 1. 拉取最新前端源码
+cd /opt/crm
+sudo git pull
 
 # 2. 安装依赖（如果 package.json 有变更）
 cd /opt/crm/frontend
@@ -288,18 +289,20 @@ sudo systemctl reload nginx
 
 | 变更类型 | 需要的步骤 |
 |---------|-----------|
-| 仅前端页面/组件变更 | 构建前端 → 更新 dist → 无需重启后端 |
-| 前端 + 新增 npm 依赖 | 安装依赖 → 构建前端 → 更新 dist |
+| 仅前端页面/组件变更 | `git pull` → 构建前端 → 无需重启后端 |
+| 前端 + 新增 npm 依赖 | `git pull` → `npm install` → 构建前端 |
 | 仅后端变更 | 无需操作前端 |
-| 全栈变更 | 更新后端 → 构建前端 → 重启后端 |
+| 全栈变更 | `git pull` → 构建前端 → 重启后端 |
 
 ### 方式 A 更新流程（服务器有 Node.js）
 
 ```bash
-# 1. 确认前端源码已更新
-cd /opt/crm/frontend
+# 1. 拉取最新代码
+cd /opt/crm
+sudo git pull
 
 # 2. 安装依赖（如果 package.json 有变更）
+cd /opt/crm/frontend
 npm install --quiet
 
 # 3. 构建
@@ -336,7 +339,28 @@ ssh 用户名@服务器IP "sudo rm -rf /opt/crm/frontend/dist && sudo cp -r /tmp
 
 ## 8. 版本回滚
 
-### 方式一：使用备份回滚（最快）
+### 方式一：Git 回退并重新构建（推荐）
+
+项目代码通过 Git 管理，回滚非常方便：
+
+```bash
+# 1. 查看提交历史，找到要回退的版本
+cd /opt/crm
+sudo git log --oneline -10
+
+# 2. 回退前端源码到指定版本
+sudo git checkout 指定commit哈希 -- frontend/
+
+# 3. 安装依赖并构建
+cd /opt/crm/frontend
+npm install --quiet
+npm run build
+
+# 4. 修复权限
+sudo chown -R www-data:www-data /opt/crm/frontend/dist
+```
+
+### 方式二：使用备份回滚（最快）
 
 部署前备份当前 `dist/`，出问题时立即恢复：
 
@@ -349,32 +373,16 @@ sudo rm -rf /opt/crm/frontend/dist
 sudo mv /opt/crm/frontend/dist.bak /opt/crm/frontend/dist
 ```
 
-### 方式二：从旧版本源码重新构建
+### 方式三：本地 git 回退后重新上传
 
 ```bash
-# 1. 在本地切回上一个 git 版本
+# 1. 在 Windows 本地切回上一个 git 版本
 git checkout 上一个commit -- frontend/
 
 # 2. 重新构建
 npm --prefix frontend run build
 
 # 3. 上传并替换（同方式 B 的步骤二、三）
-```
-
-### 方式三：使用 git 回退后服务器上构建
-
-```bash
-# 1. 在服务器上回退前端源码
-cd /opt/crm
-sudo git checkout 上一个commit -- frontend/
-
-# 2. 安装依赖并构建
-cd /opt/crm/frontend
-npm install --quiet
-npm run build
-
-# 3. 修复权限
-sudo chown -R www-data:www-data /opt/crm/frontend/dist
 ```
 
 ---
@@ -448,8 +456,11 @@ npx tsc --noEmit
 
 | 操作 | 命令 |
 |------|------|
+| 拉取最新源码 | `cd /opt/crm && sudo git pull` |
+| 查看当前版本 | `cd /opt/crm && sudo git log --oneline -1` |
 | 备份当前版本 | `sudo cp -r /opt/crm/frontend/dist /opt/crm/frontend/dist.bak` |
 | 回滚到备份 | `sudo rm -rf /opt/crm/frontend/dist && sudo mv /opt/crm/frontend/dist.bak /opt/crm/frontend/dist` |
+| Git 回退并重建 | `cd /opt/crm && sudo git checkout commit哈希 -- frontend/ && cd frontend && npm run build` |
 | 本地构建上传 | `npm --prefix frontend run build && rsync -avz --delete frontend/dist/ 服务器:/tmp/crm-dist/` |
 | 服务器替换 | `sudo rm -rf /opt/crm/frontend/dist && sudo cp -r /tmp/crm-dist /opt/crm/frontend/dist && sudo chown -R www-data:www-data /opt/crm/frontend/dist` |
 

@@ -2,55 +2,77 @@
 #
 # 一键部署脚本 — 在 Linux 服务器上执行
 #
-# 前提：服务器已安装 Python 3.11+、PostgreSQL、Nginx
-# 用法：bash deploy/deploy.sh
+# 前提：
+#   - 服务器已安装 Python 3.10+、PostgreSQL、Nginx、Git
+#   - 已将服务器 SSH 公钥添加到 Git 仓库的部署密钥
 #
-# 本脚本只需首次部署时执行一次，后续更新只需重新构建前端并重启服务
+# 用法：
+#   首次部署：REPO_URL=git@github.com:用户名/仓库名.git bash deploy/deploy.sh
+#   更新部署：bash deploy/deploy.sh
+#
+# REPO_URL 仅首次部署时需要，后续更新脚本会自动通过 git pull 同步
 
 set -e
 
 APP_DIR="/opt/crm"
-REPO_DIR=$(cd "$(dirname "$0")/.." && pwd)
+REPO_URL="${REPO_URL:-}"
 
 echo "===== CRM 部署开始 ====="
 
 # ---- 1. 安装系统依赖 ----
 echo "[1/7] 安装系统依赖..."
 sudo apt-get update -qq
-# sudo apt-get install -y python3-venv python3-pip postgresql nginx -qq
-sudo -qq
+sudo apt-get install -y python3-venv python3-pip postgresql nginx git -qq
+#sudo apt-get install -y -qq
 
-# ---- 2. 创建应用目录 ----
-echo "[2/7] 创建应用目录..."
-sudo mkdir -p $APP_DIR
-sudo cp -r $REPO_DIR/app $APP_DIR/
-sudo cp -r $REPO_DIR/alembic $APP_DIR/
-sudo cp -r $REPO_DIR/scripts $APP_DIR/
-sudo cp $REPO_DIR/alembic.ini $APP_DIR/
-sudo cp $REPO_DIR/Makefile $APP_DIR/
-sudo cp $REPO_DIR/pyproject.toml $APP_DIR/ 2>/dev/null || true
-sudo cp $REPO_DIR/requirements.txt $APP_DIR/
+# ---- 2. 同步项目代码 ----
+echo "[2/7] 同步项目代码..."
+if [ -d "$APP_DIR/.git" ]; then
+    # 已是 git 仓库，拉取最新代码
+    echo "  检测到已有仓库，拉取最新代码..."
+    cd $APP_DIR
+    sudo git fetch --all
+    sudo git reset --hard origin/main
+    echo "  代码已更新到最新版本"
+else
+    # 首次部署，克隆仓库
+    if [ -z "$REPO_URL" ]; then
+        echo "[ERROR] 首次部署需要指定 Git 仓库地址："
+        echo "  REPO_URL=git@github.com:用户名/仓库名.git bash deploy/deploy.sh"
+        exit 1
+    fi
+    # 如果目录已存在但不是 git 仓库，先备份
+    if [ -d "$APP_DIR" ]; then
+        BACKUP_DIR="${APP_DIR}_bak_$(date +%Y%m%d%H%M%S)"
+        echo "  备份现有目录到 $BACKUP_DIR ..."
+        sudo mv $APP_DIR $BACKUP_DIR
+    fi
+    sudo git clone "$REPO_URL" $APP_DIR
+    echo "  仓库已克隆到 $APP_DIR"
+fi
 
 # ---- 3. 创建 Python 虚拟环境并安装依赖 ----
 echo "[3/7] 安装 Python 依赖..."
 if [ ! -d "$APP_DIR/.venv" ]; then
     sudo python3 -m venv $APP_DIR/.venv
 fi
-# 使用项目中的 requirements.txt 安装，不再硬编码包列表
+# requirements.txt 已随 git 同步，直接安装
 sudo $APP_DIR/.venv/bin/pip install -q -r $APP_DIR/requirements.txt
 
 # ---- 4. 构建前端 ----
 echo "[4/7] 构建前端..."
 if command -v npm &> /dev/null; then
-    cd $REPO_DIR/frontend && npm install --quiet && npm run build
+    cd $APP_DIR/frontend && npm install --quiet && npm run build
 else
     echo "  跳过：服务器未安装 npm，请本地构建后将 frontend/dist 上传"
+    echo "  本地执行：npm --prefix frontend run build"
+    echo "  然后上传：scp -r frontend/dist 用户名@服务器IP:/tmp/crm-dist/"
+    echo "  服务器执行：sudo cp -r /tmp/crm-dist /opt/crm/frontend/dist"
 fi
-sudo mkdir -p $APP_DIR/frontend
-sudo cp -r $REPO_DIR/frontend/dist $APP_DIR/frontend/
 
 # ---- 5. 配置环境变量 ----
 echo "[5/7] 配置环境变量..."
+# .env 在 .gitignore 中，git pull 不会覆盖，首次生成模板
 if [ ! -f "$APP_DIR/.env" ]; then
     sudo bash -c "cat > $APP_DIR/.env << 'ENVEOF'
 APP_DATABASE_URL=postgresql+psycopg://crm:替换为你的密码@127.0.0.1:5432/crm
@@ -59,28 +81,35 @@ APP_ACCESS_TOKEN_TTL_MINUTES=60
 APP_REFRESH_TOKEN_TTL_DAYS=7
 ENVEOF"
     echo "  已生成 .env 模板，请编辑 $APP_DIR/.env 填写实际值"
+else
+    echo "  .env 已存在，保持不变（git pull 不会覆盖）"
 fi
 
 # ---- 6. 配置 Nginx ----
 echo "[6/7] 配置 Nginx..."
-sudo cp $REPO_DIR/deploy/nginx.conf /etc/nginx/sites-available/crm
+sudo cp $APP_DIR/deploy/nginx.conf /etc/nginx/sites-available/crm
 sudo ln -sf /etc/nginx/sites-available/crm /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t && sudo systemctl enable nginx && sudo systemctl reload nginx
 
 # ---- 7. 配置 Systemd 服务 ----
 echo "[7/7] 配置 Systemd 服务..."
-sudo cp $REPO_DIR/deploy/crm.service /etc/systemd/system/
+sudo cp $APP_DIR/deploy/crm.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable crm
 
 # ---- 设置文件权限 ----
+# .git 目录保留 root 权限，防止 www-data 修改仓库状态
 sudo chown -R www-data:www-data $APP_DIR
+sudo chown -R root:root $APP_DIR/.git
 
 echo ""
 echo "===== 部署完成 ====="
 echo ""
-echo "后续步骤："
+echo "当前版本："
+cd $APP_DIR && sudo git log --oneline -1
+echo ""
+echo "后续步骤（首次部署时）："
 echo "  1. 编辑 /opt/crm/.env 填写数据库密码和 JWT 密钥"
 echo "  2. 创建 PostgreSQL 数据库和用户："
 echo "     sudo -u postgres createuser crm"
@@ -94,4 +123,5 @@ echo "  5. 启动服务："
 echo "     sudo systemctl start crm"
 echo ""
 echo "更新部署（后续迭代时）："
-echo "  bash deploy/deploy.sh   # 重新执行此脚本即可"
+echo "  bash deploy/deploy.sh                  # 自动 git pull + 重新安装依赖 + 重启"
+echo "  sudo systemctl restart crm             # 代码更新后需重启后端"

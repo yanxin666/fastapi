@@ -42,27 +42,45 @@
 - `python3-pip` — Python 包管理
 - `postgresql` — 数据库
 - `nginx` — 反向代理
+- `git` — 代码版本管理与同步
 
 如需手动安装：
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y python3-venv python3-pip postgresql nginx
+sudo apt-get install -y python3-venv python3-pip postgresql nginx git
 ```
 
-### 项目文件上传
+### 配置 Git 仓库访问
 
-将项目文件上传到服务器，例如通过 `scp`：
+项目通过 Git 从远程仓库同步到服务器，需要先配置访问权限：
+
+**方式一：SSH 部署密钥（推荐）**
 
 ```bash
-# 在 Windows 本地执行（上传整个项目）
-scp -r ./app ./alembic ./scripts ./deploy ./frontend alembic.ini Makefile requirements.txt 用户名@服务器IP:/tmp/crm-src/
+# 1. 在服务器上生成 SSH 密钥
+ssh-keygen -t ed25519 -C "crm-deploy" -f ~/.ssh/crm_deploy -N ""
+
+# 2. 查看公钥
+cat ~/.ssh/crm_deploy.pub
+
+# 3. 将公钥添加到 Git 仓库的 Settings → Deploy Keys（勾选 Allow write access）
+#    GitHub: 仓库 → Settings → Deploy keys → Add deploy key
+#    Gitee:  仓库 → 管理 → 公钥管理 → 添加公钥
+
+# 4. 配置 SSH 使用该密钥
+cat >> ~/.ssh/config << 'EOF'
+Host github.com
+    IdentityFile ~/.ssh/crm_deploy
+    StrictHostKeyChecking no
+EOF
 ```
 
-或使用 `rsync`（更高效，支持增量同步）：
+**方式二：HTTPS + Token**
 
 ```bash
-rsync -avz --exclude='.venv' --exclude='node_modules' --exclude='__pycache__' --exclude='.env' ./ 用户名@服务器IP:/tmp/crm-src/
+# 使用 Personal Access Token 认证
+# REPO_URL 格式：https://用户名:TOKEN@github.com/用户名/仓库名.git
 ```
 
 ---
@@ -71,21 +89,25 @@ rsync -avz --exclude='.venv' --exclude='node_modules' --exclude='__pycache__' --
 
 ### 一键部署
 
-在项目根目录执行部署脚本：
+在服务器上执行部署脚本，首次部署需要指定 Git 仓库地址：
 
 ```bash
-bash deploy/deploy.sh
+# 首次部署 — 指定 Git 仓库地址
+REPO_URL=git@github.com:用户名/仓库名.git bash deploy/deploy.sh
+
+# 如果仓库已有源码，也可以在仓库目录内执行
+cd /opt/crm && bash deploy/deploy.sh
 ```
 
 脚本会自动完成以下 7 个步骤：
 
 | 步骤 | 内容 |
 |------|------|
-| 1/7 | 安装系统依赖（python3-venv、postgresql、nginx） |
-| 2/7 | 复制项目文件到 `/opt/crm` |
+| 1/7 | 安装系统依赖（python3-venv、postgresql、nginx、git） |
+| 2/7 | Git 克隆或拉取最新代码到 `/opt/crm` |
 | 3/7 | 创建虚拟环境并安装 Python 依赖 |
 | 4/7 | 构建前端（如果服务器有 npm） |
-| 5/7 | 生成 `.env` 配置模板 |
+| 5/7 | 生成 `.env` 配置模板（仅首次，后续不覆盖） |
 | 6/7 | 配置 Nginx 反向代理 |
 | 7/7 | 配置 Systemd 服务 |
 
@@ -258,45 +280,53 @@ sudo systemctl restart nginx
 
 ## 6. 日常更新部署
 
-当有代码更新需要部署时，有两种方式。
+代码通过 Git 同步，更新部署非常简单。
 
-### 方式一：重新执行部署脚本（简单）
+### 方式一：重新执行部署脚本（推荐）
 
 ```bash
-# 在项目根目录执行，会覆盖更新所有文件并重新安装依赖
-bash deploy/deploy.sh
+# 在服务器上执行，自动 git pull + 安装依赖 + 构建前端
+bash /opt/crm/deploy/deploy.sh
+
+# 代码更新后需重启后端
+sudo systemctl restart crm
 ```
 
-> 此方式会重新复制所有文件、安装依赖、构建前端，耗时较长。
+脚本会自动检测到 `/opt/crm` 已是 Git 仓库，执行 `git pull` 拉取最新代码，然后重新安装依赖、构建前端。
 
-### 方式二：手动增量更新（推荐，更快）
+### 方式二：手动 git pull（更快，适合小更新）
 
 ```bash
-# 1. 更新后端代码
-sudo cp -r app /opt/crm/
+# 1. 拉取最新代码
+cd /opt/crm
+sudo git pull
 
-# 2. 如果有数据库迁移变更，同步 alembic 目录
-sudo cp -r alembic /opt/crm/
-
-# 3. 如果 requirements.txt 有变更，更新 Python 依赖
-sudo cp requirements.txt /opt/crm/
+# 2. 如果 requirements.txt 有变更，更新 Python 依赖
 sudo /opt/crm/.venv/bin/pip install -q -r /opt/crm/requirements.txt
 
-# 4. 如果前端有变更，重新构建并部署
-#    方式 A：服务器上构建（需要 npm）
-cd frontend && npm install --quiet && npm run build
-sudo rm -rf /opt/crm/frontend/dist
-sudo cp -r frontend/dist /opt/crm/frontend/
+# 3. 如果前端有变更，重新构建
+#    服务器上构建：cd /opt/crm/frontend && npm install --quiet && npm run build
+#    本地构建上传：参见 operations-frontend-linux.md
 
-#    方式 B：本地构建后上传（服务器不需要 npm）
-#    在 Windows 本地先执行：npm --prefix frontend run build
-#    然后上传：scp -r frontend/dist 用户名@服务器IP:/tmp/
-#    在服务器执行：sudo cp -r /tmp/dist /opt/crm/frontend/
-
-# 5. 如果有新的迁移文件，执行数据库迁移
+# 4. 如果有新的迁移文件，执行数据库迁移
 cd /opt/crm && sudo -u www-data .venv/bin/python -m alembic upgrade head
 
-# 6. 重启后端服务
+# 5. 重启后端服务
+sudo systemctl restart crm
+```
+
+### 方式三：回退到指定版本
+
+```bash
+cd /opt/crm
+
+# 查看版本历史
+sudo git log --oneline -10
+
+# 回退到指定版本
+sudo git checkout 指定的commit哈希
+
+# 重启服务
 sudo systemctl restart crm
 ```
 
@@ -304,11 +334,11 @@ sudo systemctl restart crm
 
 | 变更类型 | 需要的步骤 |
 |---------|-----------|
-| 仅后端代码 | 更新 `app/` → `systemctl restart crm` |
-| 后端 + 新依赖 | 更新 `app/` + `requirements.txt` → 重装依赖 → `systemctl restart crm` |
-| 仅前端 | 构建前端 → 更新 `frontend/dist` → 无需重启后端 |
-| 数据库 Model 变更 | 更新 `app/` + `alembic/` → `alembic upgrade head` → `systemctl restart crm` |
-| Nginx 配置变更 | 更新配置 → `nginx -t` → `systemctl reload nginx` |
+| 仅后端代码 | `git pull` → `systemctl restart crm` |
+| 后端 + 新依赖 | `git pull` → 重装依赖 → `systemctl restart crm` |
+| 仅前端 | `git pull` → 构建前端 → 无需重启后端 |
+| 数据库 Model 变更 | `git pull` → `alembic upgrade head` → `systemctl restart crm` |
+| Nginx/服务配置变更 | `git pull` → 脚本自动处理或手动 `systemctl reload nginx` |
 
 ---
 
@@ -457,15 +487,18 @@ sudo systemctl status certbot.timer
 ### 目录结构
 
 ```
-/opt/crm/
+/opt/crm/                      # Git 仓库
+├── .git/                  # Git 版本控制（root 权限，防止误操作）
 ├── app/                  # 后端应用代码
 ├── alembic/              # 数据库迁移文件
 ├── alembic.ini           # Alembic 配置
 ├── scripts/              # 脚本（数据导入等）
+├── deploy/               # 部署配置（nginx.conf、crm.service、deploy.sh）
 ├── frontend/
-│   └── dist/             # 前端构建产物（Nginx 托管）
-├── .venv/                # Python 虚拟环境
-├── .env                  # 环境变量配置（数据库密码、JWT 密钥等）
+│   ├── src/              # 前端源码
+│   └── dist/             # 前端构建产物（Nginx 托管，git 已忽略）
+├── .venv/                # Python 虚拟环境（git 已忽略）
+├── .env                  # 环境变量配置（git 已忽略，不会覆盖）
 ├── requirements.txt      # Python 依赖
 └── Makefile              # 便捷命令
 ```
@@ -515,7 +548,17 @@ WantedBy=multi-user.target
 | 查看实时日志 | `sudo journalctl -u crm -f` |
 | 检查进程是否在运行 | `ps aux \| grep uvicorn` |
 | 端口 8000 被占用 | `sudo lsof -i :8000` 或 `sudo ss -tlnp \| grep 8000` |
-| 权限问题 | `sudo chown -R www-data:www-data /opt/crm` |
+| 权限问题 | `sudo chown -R www-data:www-data /opt/crm && sudo chown -R root:root /opt/crm/.git` |
+
+### Git 同步问题
+
+| 问题 | 排查命令 |
+|------|---------|
+| git pull 失败（权限） | `sudo git pull`（需 root 权限，.git 属于 root） |
+| git pull 冲突 | `sudo git status` 查看冲突文件；`sudo git reset --hard origin/main` 强制覆盖 |
+| SSH 连接仓库失败 | `ssh -T git@github.com` 测试连接 |
+| 查看当前版本 | `cd /opt/crm && sudo git log --oneline -1` |
+| 查看本地与远程差异 | `cd /opt/crm && sudo git fetch && sudo git log HEAD..origin/main --oneline` |
 
 ### Nginx 问题
 
@@ -562,7 +605,10 @@ sudo systemctl restart crm
 #### 文件权限修复
 
 ```bash
+# 应用文件归 www-data
 sudo chown -R www-data:www-data /opt/crm
+# .git 目录归 root，防止应用进程修改仓库状态
+sudo chown -R root:root /opt/crm/.git
 sudo chmod -R 755 /opt/crm/app
 sudo chmod -R 755 /opt/crm/frontend/dist
 sudo chmod 600 /opt/crm/.env  # 保护敏感配置
@@ -611,11 +657,13 @@ sudo chmod 600 /opt/crm/.env  # 保护敏感配置
 
 | 操作 | 命令 |
 |------|------|
-| 首次部署 | `bash deploy/deploy.sh` |
-| 更新后端代码 | `sudo cp -r app /opt/crm/ && sudo systemctl restart crm` |
-| 更新前端 | 构建后 `sudo cp -r frontend/dist /opt/crm/frontend/` |
-| 更新依赖 | `sudo /opt/crm/.venv/bin/pip install -q -r /opt/crm/requirements.txt` |
-| 修复权限 | `sudo chown -R www-data:www-data /opt/crm` |
+| 首次部署 | `REPO_URL=git@github.com:用户/仓.git bash deploy/deploy.sh` |
+| 更新部署（自动） | `bash /opt/crm/deploy/deploy.sh` |
+| 更新部署（手动） | `cd /opt/crm && sudo git pull && sudo systemctl restart crm` |
+| 回退到指定版本 | `cd /opt/crm && sudo git checkout commit哈希 && sudo systemctl restart crm` |
+| 查看当前版本 | `cd /opt/crm && sudo git log --oneline -1` |
+| 更新 Python 依赖 | `sudo /opt/crm/.venv/bin/pip install -q -r /opt/crm/requirements.txt` |
+| 修复权限 | `sudo chown -R www-data:www-data /opt/crm && sudo chown -R root:root /opt/crm/.git` |
 
 ### PostgreSQL
 
