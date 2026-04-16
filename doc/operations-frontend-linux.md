@@ -25,17 +25,23 @@
 
 ## 1. Node.js 安装
 
-Ubuntu 22.04 默认源的 Node.js 版本较旧（v12），建议通过 NodeSource 安装 v20 LTS。
+> **重要**：前端项目要求 **Node.js 20+**。Ubuntu 22.04 默认 apt 源的 Node.js 是 v12，**直接 `apt install nodejs` 会导致构建失败**。必须通过 NodeSource 安装 v20 LTS。
 
-### 安装 NodeSource 20.x
+### 方式一：NodeSource 安装（推荐）
 
 ```bash
-# 添加 NodeSource 源
+# 添加 NodeSource 20.x 源
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 
 # 安装 Node.js（包含 npm）
 sudo apt-get install -y nodejs
 ```
+
+> 部署脚本 `deploy/deploy.sh` 已内置此步骤，会自动检测版本并安装。如果你直接执行部署脚本，可以跳过手动安装。
+
+### 方式二：不安装 Node.js
+
+如果不想在服务器上安装 Node.js，可以使用 [方式 B：本地构建后上传](#5-部署方式-b本地构建后上传)，在 Windows 上构建后将 `dist/` 目录上传到服务器即可。
 
 ### 验证安装
 
@@ -44,9 +50,21 @@ node --version   # 应输出 v20.x.x
 npm --version    # 应输出 10.x.x 或 9.x.x
 ```
 
-### 不安装 Node.js 的替代方案
+### 常见错误：用了默认源的 v12
 
-如果不想在服务器上安装 Node.js，可以使用 [方式 B：本地构建后上传](#5-部署方式-b本地构建后上传)，在 Windows 上构建后将 `dist/` 目录上传到服务器即可。
+如果 `node --version` 输出 `v12.x.x`，说明用的是 Ubuntu 默认源，构建会报错：
+
+```
+SyntaxError: Unexpected token '?'
+```
+
+解决方法：按上方"方式一"重新安装 Node.js 20。如果之前装过 v12，需要先卸载：
+
+```bash
+sudo apt-get remove nodejs
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
+```
 
 ---
 

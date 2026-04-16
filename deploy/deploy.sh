@@ -61,13 +61,41 @@ sudo $APP_DIR/.venv/bin/pip install -q -r $APP_DIR/requirements.txt
 
 # ---- 4. 构建前端 ----
 echo "[4/7] 构建前端..."
-if command -v npm &> /dev/null; then
+# 前端项目要求 Node.js 20+，Ubuntu 22.04 默认源只有 v12，需要检查版本
+NODE_MIN_VERSION=20
+NODE_VERSION_OK=false
+
+if command -v node &> /dev/null; then
+    NODE_MAJOR=$(node -e "console.log(process.versions.node.split('.')[0])" 2>/dev/null || echo "0")
+    if [ "$NODE_MAJOR" -ge "$NODE_MIN_VERSION" ]; then
+        NODE_VERSION_OK=true
+    else
+        echo "  当前 Node.js 版本: v$(node --version)，需要 v${NODE_MIN_VERSION}+"
+    fi
+fi
+
+# Node.js 版本不够，尝试通过 NodeSource 安装
+if [ "$NODE_VERSION_OK" = false ]; then
+    echo "  正在安装 Node.js ${NODE_MIN_VERSION}.x ..."
+    curl -fsSL https://deb.nodesource.com/setup_${NODE_MIN_VERSION}.x | sudo -E bash -
+    sudo apt-get install -y nodejs -qq
+    if command -v node &> /dev/null; then
+        NODE_MAJOR=$(node -e "console.log(process.versions.node.split('.')[0])" 2>/dev/null || echo "0")
+        if [ "$NODE_MAJOR" -ge "$NODE_MIN_VERSION" ]; then
+            NODE_VERSION_OK=true
+            echo "  Node.js 已安装: v$(node --version)"
+        fi
+    fi
+fi
+
+if [ "$NODE_VERSION_OK" = true ]; then
     cd $APP_DIR/frontend && npm install --quiet && npm run build
 else
-    echo "  跳过：服务器未安装 npm，请本地构建后将 frontend/dist 上传"
-    echo "  本地执行：npm --prefix frontend run build"
-    echo "  然后上传：scp -r frontend/dist 用户名@服务器IP:/tmp/crm-dist/"
-    echo "  服务器执行：sudo cp -r /tmp/crm-dist /opt/crm/frontend/dist"
+    echo "  跳过：Node.js 安装失败或版本不满足要求"
+    echo "  请在本地构建后上传 frontend/dist："
+    echo "    本地执行：npm --prefix frontend run build"
+    echo "    上传执行：scp -r frontend/dist 用户名@服务器IP:/tmp/crm-dist/"
+    echo "    服务器执行：sudo cp -r /tmp/crm-dist /opt/crm/frontend/dist"
 fi
 
 # ---- 5. 配置环境变量 ----

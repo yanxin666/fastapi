@@ -32,8 +32,11 @@
 | Python | 3.10+（Ubuntu 22.04 自带 3.10） |
 | PostgreSQL | 14+（Ubuntu 22.04 默认源提供） |
 | Nginx | 1.18+（Ubuntu 22.04 默认源提供） |
+| Node.js | 20+（用于前端构建，部署脚本会自动安装） |
 | 磁盘空间 | 至少 2GB（含虚拟环境和前端构建产物） |
 | 内存 | 至少 1GB |
+
+> **Node.js 版本警告**：Ubuntu 22.04 默认 apt 源的 Node.js 是 v12，**不满足前端构建要求**。部署脚本会自动通过 NodeSource 安装 v20。如果手动安装，切勿使用 `apt install nodejs`，详见 [operations-frontend-linux.md](operations-frontend-linux.md)。
 
 ### 前置依赖安装
 
@@ -43,12 +46,17 @@
 - `postgresql` — 数据库
 - `nginx` — 反向代理
 - `git` — 代码版本管理与同步
+- `nodejs 20.x` — 前端构建（通过 NodeSource 安装）
 
 如需手动安装：
 
 ```bash
 sudo apt-get update
 sudo apt-get install -y python3-venv python3-pip postgresql nginx git
+
+# Node.js 20（必须通过 NodeSource，不要用 apt 默认源）
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
 ```
 
 ### 配置 Git 仓库访问
