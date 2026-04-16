@@ -1,0 +1,36 @@
+# Systemd 服务 — Uvicorn 运行 CRM 后端
+#
+# 使用方式：
+#   1. 将此文件复制到服务器 /etc/systemd/system/crm.service
+#   2. systemctl daemon-reload
+#   3. systemctl enable crm      # 开机自启
+#   4. systemctl start crm       # 立即启动
+#
+# 常用命令：
+#   systemctl status crm         # 查看状态
+#   systemctl restart crm        # 重启
+#   journalctl -u crm -f         # 查看实时日志
+
+[Unit]
+Description=CRM Backend (FastAPI + Uvicorn)
+After=network.target postgresql.service
+
+[Service]
+Type=notify
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/crm
+ExecStart=/opt/crm/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 2
+Restart=always
+RestartSec=5
+
+# 环境变量
+EnvironmentFile=/opt/crm/.env
+
+# 安全限制
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/crm
+
+[Install]
+WantedBy=multi-user.target

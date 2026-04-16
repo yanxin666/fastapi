@@ -1,0 +1,15 @@
+# 开发依赖 — 仅本地开发环境安装
+# 使用方式：pip install -r requirements-dev.txt
+
+-r requirements.txt
+
+# 测试
+pytest>=8.0
+httpx>=0.28
+
+# 代码格式化与检查
+black>=26.0
+isort>=7.0
+
+# Git hooks
+pre-commit>=4.0

@@ -5,7 +5,7 @@ REM ====== Config ======
 set "PROJECT_DIR=D:\project\python\fastapi"
 set "PYTHON_EXE=%PROJECT_DIR%\.venv\Scripts\python.exe"
 set "APP_MODULE=app.main:app"
-set "PORT=8001"
+set "PORT=8000"
 
 echo [1/5] Checking project directory...
 if not exist "%PROJECT_DIR%" (
