@@ -16,21 +16,19 @@ Description=CRM Backend (FastAPI + Uvicorn)
 After=network.target postgresql.service
 
 [Service]
-Type=notify
+Type=simple
 User=www-data
 Group=www-data
 WorkingDirectory=/opt/crm
-ExecStart=/opt/crm/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 2
+ExecStart=/opt/crm/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
 Restart=always
 RestartSec=5
 
 # 环境变量
 EnvironmentFile=/opt/crm/.env
 
-# 安全限制
-NoNewPrivileges=true
-ProtectSystem=strict
-ReadWritePaths=/opt/crm
+# 允许写入应用目录和临时目录
+ReadWritePaths=/opt/crm /tmp
 
 [Install]
 WantedBy=multi-user.target

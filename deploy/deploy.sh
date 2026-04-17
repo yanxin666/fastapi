@@ -27,6 +27,8 @@ echo "===== CRM 部署开始 ====="
 
 # ---- 2. 同步项目代码 ----
 echo "[2/7] 同步项目代码..."
+# 解决 .git 归 root、工作目录归 www-data 导致的 ownership 警告
+sudo git config --global --add safe.directory $APP_DIR
 if [ -d "$APP_DIR/.git" ]; then
     # 已是 git 仓库，拉取最新代码
     echo "  检测到已有仓库，拉取最新代码..."
