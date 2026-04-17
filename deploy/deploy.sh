@@ -20,9 +20,9 @@ REPO_URL="${REPO_URL:-}"
 echo "===== CRM 部署开始 ====="
 
 # ---- 1. 安装系统依赖 ----
-echo "[1/7] 安装系统依赖..."
-sudo apt-get update -qq
-sudo apt-get install -y python3-venv python3-pip postgresql nginx git -qq
+#echo "[1/7] 安装系统依赖..."
+#sudo apt-get update -qq
+#sudo apt-get install -y python3-venv python3-pip postgresql nginx git -qq
 #sudo apt-get install -y -qq
 
 # ---- 2. 同步项目代码 ----
