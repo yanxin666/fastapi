@@ -3,8 +3,9 @@
 # 一键部署脚本 — 在 Linux 服务器上执行
 #
 # 前提：
-#   - 服务器已安装 Python 3.10+、PostgreSQL、Nginx、Git
+#   - 服务器已安装 PostgreSQL、Nginx、Git
 #   - 已将服务器 SSH 公钥添加到 Git 仓库的部署密钥
+#   - Python 3.12 由脚本自动安装（通过 deadsnakes PPA，不影响系统 Python 3.10）
 #
 # 用法：
 #   首次部署：REPO_URL=git@github.com:用户名/仓库名.git bash deploy/deploy.sh
@@ -16,14 +17,26 @@ set -e
 
 APP_DIR="/opt/crm"
 REPO_URL="${REPO_URL:-}"
+PYTHON_VERSION="3.12"
+PYTHON_BIN="python${PYTHON_VERSION}"
 
 echo "===== CRM 部署开始 ====="
 
 # ---- 1. 安装系统依赖 ----
 #echo "[1/7] 安装系统依赖..."
 #sudo apt-get update -qq
-#sudo apt-get install -y python3-venv python3-pip postgresql nginx git -qq
-#sudo apt-get install -y -qq
+#sudo apt-get install -y postgresql nginx git software-properties-common -qq
+
+# 安装 Python 3.12（通过 deadsnakes PPA，与系统 Python 3.10 并行，互不影响）
+if ! command -v $PYTHON_BIN &> /dev/null; then
+    echo "  安装 Python ${PYTHON_VERSION}（deadsnakes PPA）..."
+    sudo add-apt-repository -y ppa:deadsnakes/ppa
+    sudo apt-get update -qq
+    sudo apt-get install -y ${PYTHON_BIN} ${PYTHON_BIN}-venv ${PYTHON_BIN}-dev -qq
+    echo "  Python ${PYTHON_VERSION} 已安装: $($PYTHON_BIN --version)"
+else
+    echo "  Python ${PYTHON_VERSION} 已存在: $($PYTHON_BIN --version)"
+fi
 
 # ---- 2. 同步项目代码 ----
 echo "[2/7] 同步项目代码..."
@@ -55,8 +68,17 @@ fi
 
 # ---- 3. 创建 Python 虚拟环境并安装依赖 ----
 echo "[3/7] 安装 Python 依赖..."
+# 如果已有 venv 但用的是旧版 Python，删除重建
+if [ -d "$APP_DIR/.venv" ]; then
+    VENV_PYTHON_VERSION=$($APP_DIR/.venv/bin/python --version 2>/dev/null | grep -oP '\d+\.\d+' || echo "0.0")
+    if [ "$VENV_PYTHON_VERSION" != "$PYTHON_VERSION" ]; then
+        echo "  虚拟环境 Python 版本为 $VENV_PYTHON_VERSION，需要 $PYTHON_VERSION，正在重建..."
+        sudo rm -rf $APP_DIR/.venv
+    fi
+fi
 if [ ! -d "$APP_DIR/.venv" ]; then
-    sudo python3 -m venv $APP_DIR/.venv
+    sudo $PYTHON_BIN -m venv $APP_DIR/.venv
+    echo "  虚拟环境已创建: $($APP_DIR/.venv/bin/python --version)"
 fi
 # requirements.txt 已随 git 同步，直接安装
 sudo $APP_DIR/.venv/bin/pip install -q -r $APP_DIR/requirements.txt
@@ -136,8 +158,10 @@ sudo chown -R root:root $APP_DIR/.git
 echo ""
 echo "===== 部署完成 ====="
 echo ""
-echo "当前版本："
-cd $APP_DIR && sudo git log --oneline -1
+echo "运行环境："
+echo "  Python:  $($APP_DIR/.venv/bin/python --version)"
+echo "  Node.js: $(node --version 2>/dev/null || echo '未安装')"
+echo "  版本:    $(cd $APP_DIR && sudo git log --oneline -1)"
 echo ""
 echo "后续步骤（首次部署时）："
 echo "  1. 编辑 /opt/crm/.env 填写数据库密码和 JWT 密钥"

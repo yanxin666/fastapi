@@ -29,7 +29,7 @@
 | 项目 | 要求 |
 |------|------|
 | 操作系统 | Ubuntu 22.04 LTS 64bit |
-| Python | 3.10+（Ubuntu 22.04 自带 3.10） |
+| Python | 3.12（通过 deadsnakes PPA 安装，不影响系统 Python 3.10） |
 | PostgreSQL | 14+（Ubuntu 22.04 默认源提供） |
 | Nginx | 1.18+（Ubuntu 22.04 默认源提供） |
 | Node.js | 20+（用于前端构建，部署脚本会自动安装） |
@@ -41,18 +41,24 @@
 ### 前置依赖安装
 
 首次部署脚本（`deploy/deploy.sh`）会自动安装以下系统依赖：
-- `python3-venv` — Python 虚拟环境
-- `python3-pip` — Python 包管理
+- `python3.12` + `python3.12-venv` — 通过 deadsnakes PPA 安装，与系统 Python 3.10 并行
 - `postgresql` — 数据库
 - `nginx` — 反向代理
 - `git` — 代码版本管理与同步
 - `nodejs 20.x` — 前端构建（通过 NodeSource 安装）
 
+> **为什么不直接用系统 Python 3.10？** 项目代码使用了 `datetime.UTC` 等 Python 3.11+ 特性，且 deadsnakes 安装的是独立二进制（`python3.12`），不会替换系统的 `python3`，apt、ufw 等系统工具完全不受影响。
+
 如需手动安装：
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y python3-venv python3-pip postgresql nginx git
+sudo apt-get install -y postgresql nginx git software-properties-common
+
+# Python 3.12（通过 deadsnakes PPA，不影响系统 Python 3.10）
+sudo add-apt-repository -y ppa:deadsnakes/ppa
+sudo apt-get update
+sudo apt-get install -y python3.12 python3.12-venv python3.12-dev
 
 # Node.js 20（必须通过 NodeSource，不要用 apt 默认源）
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
@@ -111,7 +117,7 @@ cd /opt/crm && bash deploy/deploy.sh
 
 | 步骤 | 内容 |
 |------|------|
-| 1/7 | 安装系统依赖（python3-venv、postgresql、nginx、git） |
+| 1/7 | 安装系统依赖（Python 3.12、PostgreSQL、Nginx、Git） |
 | 2/7 | Git 克隆或拉取最新代码到 `/opt/crm` |
 | 3/7 | 创建虚拟环境并安装 Python 依赖 |
 | 4/7 | 构建前端（如果服务器有 npm） |
@@ -521,27 +527,27 @@ Description=CRM Backend (FastAPI + Uvicorn)
 After=network.target postgresql.service
 
 [Service]
-Type=notify
+Type=simple
 User=www-data
 Group=www-data
 WorkingDirectory=/opt/crm
-ExecStart=/opt/crm/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 2
+ExecStart=/opt/crm/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
 Restart=always
 RestartSec=5
 EnvironmentFile=/opt/crm/.env
-NoNewPrivileges=true
-ProtectSystem=strict
-ReadWritePaths=/opt/crm
+ReadWritePaths=/opt/crm /tmp
 
 [Install]
 WantedBy=multi-user.target
 ```
 
 关键参数说明：
-- `--workers 2`：Uvicorn 工作进程数，建议设为 CPU 核心数
+- `Type=simple`：进程启动即认为服务开始运行（Uvicorn 不支持 sd_notify，不能用 Type=notify）
 - `Restart=always`：进程异常退出时自动重启
 - `RestartSec=5`：重启间隔 5 秒
-- `ProtectSystem=strict`：限制写入范围，仅允许 `/opt/crm`
+- `ReadWritePaths`：允许服务写入的目录
+
+> **如需多 worker 模式**：服务稳定运行后，可在 ExecStart 末尾加 `--workers 2`，但需注意多 worker 下 `.env` 和数据库连接池的配置。
 
 ---
 
