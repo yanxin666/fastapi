@@ -36,16 +36,14 @@ class Settings(BaseSettings):
     """API v1 版本的路由前缀"""
 
     # 数据库连接配置
-    database_url: str = Field(
-        default="postgresql+psycopg://postgres:yanxin@localhost:5432/postgre"
-    )
+    database_url: str = Field(default="")
     """
     数据库连接 URL
     格式：postgresql+psycopg://用户名:密码@主机:端口/数据库名
     """
 
     # JWT 认证配置
-    jwt_secret_key: str = Field(default="change-this-secret-in-production")
+    jwt_secret_key: str = Field(default="")
     """
     JWT 签名密钥，用于生成和验证 token
     生产环境必须使用强随机字符串并妥善保管
@@ -59,6 +57,19 @@ class Settings(BaseSettings):
 
     refresh_token_ttl_days: int = Field(default=7)
     """刷新令牌（refresh token）的有效期，单位：天"""
+
+    # 腾讯云相关配置
+    tencent_main_account_id: str = Field(default="100004453623")
+    """腾讯云主账号 ID"""
+
+    tencent_cos_user_name: str = Field(default="cos")
+    """腾讯云 COS 用户名"""
+
+    tencent_cos_secret_id: str = Field(default="")
+    """腾讯云 COS SecretId"""
+
+    tencent_cos_secret_key: str = Field(default="")
+    """腾讯云 COS SecretKey"""
 
     # Pydantic 配置类，用于控制 Settings 的行为
     model_config = SettingsConfigDict(
