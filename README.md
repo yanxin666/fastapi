@@ -95,7 +95,8 @@ python3 -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```powershell
 py -3 -m venv .venv
 .venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
+.venv\Scripts\python.exe -m pip install -r requirements.txt
+.venv\Scripts\python.exe -m pip freeze > requirements.txt
 npm --prefix frontend install
 npm --prefix frontend run build
 .venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
