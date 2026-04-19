@@ -1,5 +1,5 @@
-from client import _get_client
-from schemas import InitClientSchema, UploadFileSchema
+from .client import _get_client
+from .schemas import InitClientSchema, UploadFileSchema
 
 
 # COSService 类封装了与腾讯云对象存储服务（COS）的交互，提供了上传文件的功能。

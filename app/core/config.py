@@ -6,9 +6,14 @@
 """
 
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# 基于当前文件计算项目根目录，避免从 tests 等子目录启动时找不到 .env
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+_ENV_FILE = _PROJECT_ROOT / ".env"
 
 
 class Settings(BaseSettings):
@@ -75,8 +80,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="APP_",
         # 环境变量前缀，只有以 APP_ 开头的环境变量才会被读取
-        env_file=".env",
-        # 从 .env 文件读取配置
+        env_file=_ENV_FILE,
+        # 固定使用项目根目录下的 .env，避免受当前工作目录影响
         env_file_encoding="utf-8",
         # .env 文件的编码格式
         case_sensitive=False,

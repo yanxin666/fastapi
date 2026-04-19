@@ -19,7 +19,7 @@ class InitClientSchema(BaseModel):
     ''' 用户的 SecretKey '''
 
     # 可选字段：token、scheme，scheme 默认为 'https'
-    token: str = None
+    token: str | None = None
     ''' 如果使用永久密钥不需要填入 token，如果使用临时密钥需要填入 '''
 
     scheme: str = 'https'
