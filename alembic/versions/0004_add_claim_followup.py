@@ -56,21 +56,20 @@ def upgrade() -> None:
             server_default=sa.func.now(),
         ),
         sa.PrimaryKeyConstraint("id"),
-        sa.ForeignKeyConstraint(
-            ["user_id"], ["users.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
     )
     op.create_index(
-        op.f("ix_claim_strategies_user_id"), "claim_strategies", ["user_id"], unique=True
+        op.f("ix_claim_strategies_user_id"),
+        "claim_strategies",
+        ["user_id"],
+        unique=True,
     )
 
     # 3. 认领记录表
     op.create_table(
         "claim_records",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
-        sa.Column(
-            "customer_id", sa.Integer(), nullable=False
-        ),
+        sa.Column("customer_id", sa.Integer(), nullable=False),
         sa.Column("user_id", sa.Integer(), nullable=False),
         sa.Column("claim_status", sa.String(20), nullable=False),
         sa.Column("claim_time", sa.DateTime(timezone=True), nullable=False),
@@ -83,15 +82,9 @@ def upgrade() -> None:
             server_default=sa.func.now(),
         ),
         sa.PrimaryKeyConstraint("id"),
-        sa.ForeignKeyConstraint(
-            ["customer_id"], ["customers.id"], ondelete="CASCADE"
-        ),
-        sa.ForeignKeyConstraint(
-            ["user_id"], ["users.id"], ondelete="SET NULL"
-        ),
-        sa.ForeignKeyConstraint(
-            ["assigned_by"], ["users.id"], ondelete="SET NULL"
-        ),
+        sa.ForeignKeyConstraint(["customer_id"], ["customers.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="SET NULL"),
+        sa.ForeignKeyConstraint(["assigned_by"], ["users.id"], ondelete="SET NULL"),
     )
     op.create_index(
         op.f("ix_claim_records_customer_id"), "claim_records", ["customer_id"]
@@ -111,17 +104,13 @@ def upgrade() -> None:
     op.create_table(
         "followup_records",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
-        sa.Column(
-            "customer_id", sa.Integer(), nullable=False
-        ),
+        sa.Column("customer_id", sa.Integer(), nullable=False),
         sa.Column("user_id", sa.Integer(), nullable=False),
         sa.Column("contact_time", sa.DateTime(timezone=True), nullable=False),
         sa.Column("method", sa.String(20), nullable=False),
         sa.Column("intention", sa.String(20), nullable=True),
         sa.Column("notes", sa.Text(), nullable=True),
-        sa.Column(
-            "next_followup_time", sa.DateTime(timezone=True), nullable=True
-        ),
+        sa.Column("next_followup_time", sa.DateTime(timezone=True), nullable=True),
         sa.Column(
             "is_deleted",
             sa.Boolean(),
@@ -142,12 +131,8 @@ def upgrade() -> None:
             server_default=sa.func.now(),
         ),
         sa.PrimaryKeyConstraint("id"),
-        sa.ForeignKeyConstraint(
-            ["customer_id"], ["customers.id"], ondelete="CASCADE"
-        ),
-        sa.ForeignKeyConstraint(
-            ["user_id"], ["users.id"], ondelete="SET NULL"
-        ),
+        sa.ForeignKeyConstraint(["customer_id"], ["customers.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="SET NULL"),
     )
     op.create_index(
         op.f("ix_followup_records_customer_id"), "followup_records", ["customer_id"]
@@ -173,9 +158,7 @@ def downgrade() -> None:
     op.drop_index(
         op.f("ix_followup_records_next_followup"), table_name="followup_records"
     )
-    op.drop_index(
-        "ix_followup_records_user_contact", table_name="followup_records"
-    )
+    op.drop_index("ix_followup_records_user_contact", table_name="followup_records")
     op.drop_index(
         op.f("ix_followup_records_customer_id"), table_name="followup_records"
     )

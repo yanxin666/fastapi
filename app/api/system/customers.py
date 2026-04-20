@@ -209,7 +209,9 @@ def list_customers(
     keyword: str | None = Query(None, description="关键词搜索（姓名/电话）"),
     feedback_status: str | None = Query(None, description="反馈状态筛选"),
     customer_stage: str | None = Query(None, description="客户阶段筛选"),
-    claim_status: str | None = Query(None, description="认领状态筛选：unclaimed(公海)/claimed(已认领)"),
+    claim_status: str | None = Query(
+        None, description="认领状态筛选：unclaimed(公海)/claimed(已认领)"
+    ),
     claimed_by: int | None = Query(None, description="按认领用户 ID 筛选"),
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(20, ge=1, le=100, description="每页条数"),
@@ -283,8 +285,7 @@ def list_customers(
 
     return {
         "items": [
-            _serialize_customer(c, current_user, claim_user_names)
-            for c in customers
+            _serialize_customer(c, current_user, claim_user_names) for c in customers
         ],
         "total": total,
     }
@@ -443,12 +444,15 @@ def _get_current_claim_count(db: Session, user_id: int) -> int:
     Returns:
         int: 当前已认领数量
     """
-    return db.execute(
-        select(func.count(ClaimRecord.id)).where(
-            ClaimRecord.user_id == user_id,
-            ClaimRecord.claim_status == "claimed",
-        )
-    ).scalar() or 0
+    return (
+        db.execute(
+            select(func.count(ClaimRecord.id)).where(
+                ClaimRecord.user_id == user_id,
+                ClaimRecord.claim_status == "claimed",
+            )
+        ).scalar()
+        or 0
+    )
 
 
 @router.post("/customers/{customer_id}/claim")
@@ -779,7 +783,9 @@ def _serialize_customer(
         "user_id": customer.user_id,
         "claim_status": "claimed" if customer.user_id is not None else "unclaimed",
         "claim_user_name": claim_user_name,
-        "followup_at": customer.followup_at.isoformat() if customer.followup_at else None,
+        "followup_at": (
+            customer.followup_at.isoformat() if customer.followup_at else None
+        ),
         # 基本信息
         "name": customer.name,
         "phone": customer.phone,

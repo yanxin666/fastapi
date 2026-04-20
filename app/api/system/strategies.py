@@ -59,9 +59,9 @@ def list_strategies(db: Session = Depends(get_db)):
     # 统计 claim_records 中 status=claimed 且未释放的记录数
     claim_counts = dict(
         db.execute(
-            select(ClaimRecord.user_id, func.count(ClaimRecord.id)).where(
-                ClaimRecord.claim_status == "claimed"
-            ).group_by(ClaimRecord.user_id)
+            select(ClaimRecord.user_id, func.count(ClaimRecord.id))
+            .where(ClaimRecord.claim_status == "claimed")
+            .group_by(ClaimRecord.user_id)
         ).all()
     )
 
@@ -95,7 +95,11 @@ def create_strategy(
         select(ClaimStrategy).where(ClaimStrategy.user_id == payload.user_id)
     ).scalar_one_or_none()
     if existing is not None:
-        label = "系统默认策略" if payload.user_id is None else f"用户 {payload.user_id} 的策略"
+        label = (
+            "系统默认策略"
+            if payload.user_id is None
+            else f"用户 {payload.user_id} 的策略"
+        )
         raise HTTPException(status_code=409, detail=f"{label}已存在")
 
     # 校验：认领上限必须大于 0
@@ -139,12 +143,15 @@ def update_strategy(
     db.refresh(strategy)
 
     # 查询当前认领数
-    current_count = db.execute(
-        select(func.count(ClaimRecord.id)).where(
-            ClaimRecord.user_id == strategy.user_id,
-            ClaimRecord.claim_status == "claimed",
-        )
-    ).scalar() or 0
+    current_count = (
+        db.execute(
+            select(func.count(ClaimRecord.id)).where(
+                ClaimRecord.user_id == strategy.user_id,
+                ClaimRecord.claim_status == "claimed",
+            )
+        ).scalar()
+        or 0
+    )
 
     return _serialize_strategy(strategy, current_count, db)
 

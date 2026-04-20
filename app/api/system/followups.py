@@ -220,8 +220,12 @@ def _serialize_followup(
         "id": record.id,
         "customer_id": record.customer_id,
         "user_id": record.user_id,
-        "username": user_names.get(record.user_id) if user_names and record.user_id else None,
-        "contact_time": record.contact_time.isoformat() if record.contact_time else None,
+        "username": (
+            user_names.get(record.user_id) if user_names and record.user_id else None
+        ),
+        "contact_time": (
+            record.contact_time.isoformat() if record.contact_time else None
+        ),
         "method": record.method,
         "intention": record.intention,
         "notes": record.notes,

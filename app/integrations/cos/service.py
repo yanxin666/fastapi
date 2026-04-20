@@ -7,7 +7,13 @@ class COSService:
 
     # 初始化 COS 客户端
     def __init__(self, params: InitClientSchema):
-        self.client = _get_client(params.region, params.secret_id, params.secret_key, params.token, params.scheme)
+        self.client = _get_client(
+            params.region,
+            params.secret_id,
+            params.secret_key,
+            params.token,
+            params.scheme,
+        )
 
     # 上传文件到 COS
     def upload_file(self, params: UploadFileSchema):
@@ -18,7 +24,7 @@ class COSService:
                 LocalFilePath=params.file_path,
                 PartSize=1,
                 MAXThread=3,
-                EnableMD5=False
+                EnableMD5=False,
             )
             return response
         except Exception as e:

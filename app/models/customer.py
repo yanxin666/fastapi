@@ -31,12 +31,16 @@ class Customer(Base):
 
     # ==================== 认领信息 ====================
     user_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("users.id"), nullable=True, index=True,
+        Integer,
+        ForeignKey("users.id"),
+        nullable=True,
+        index=True,
     )
     """当前认领用户 ID，FK 到 users 表，NULL 表示未被认领（公海客户）"""
 
     followup_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True,
+        DateTime(timezone=True),
+        nullable=True,
     )
     """最新跟进日期，创建跟进记录时自动更新"""
 

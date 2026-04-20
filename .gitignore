@@ -209,3 +209,4 @@ __marimo__/
 .claude/settings.local.json
 .claude/
 tmp/
+py-fastapi.code-workspace

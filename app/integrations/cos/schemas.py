@@ -10,20 +10,20 @@ from pydantic import BaseModel
 class InitClientSchema(BaseModel):
     # 必填字段：region、secret_id、secret_key
     region: str
-    ''' COS 所在的地域，例如 'ap-beijing '''
+    """ COS 所在的地域，例如 'ap-beijing """
 
     secret_id: str
-    ''' 用户的 SecretId '''
+    """ 用户的 SecretId """
 
     secret_key: str
-    ''' 用户的 SecretKey '''
+    """ 用户的 SecretKey """
 
     # 可选字段：token、scheme，scheme 默认为 'https'
     token: str | None = None
-    ''' 如果使用永久密钥不需要填入 token，如果使用临时密钥需要填入 '''
+    """ 如果使用永久密钥不需要填入 token，如果使用临时密钥需要填入 """
 
-    scheme: str = 'https'
-    ''' 指定使用 http/https 协议来访问 COS，默认为 https '''
+    scheme: str = "https"
+    """ 指定使用 http/https 协议来访问 COS，默认为 https """
 
 
 # 定义上传文件请求的数据模型
@@ -32,10 +32,10 @@ class InitClientSchema(BaseModel):
 # file_path: 本地文件路径，例如 /path/to/local/file.txt
 class UploadFileSchema(BaseModel):
     bucket_name: str
-    ''' 存储桶名称，格式为 BucketName-Appid，例如 mybucket-1250000000 '''
+    """ 存储桶名称，格式为 BucketName-Appid，例如 mybucket-1250000000 """
 
     object_name: str
-    ''' 存储在 COS 中的对象键（即文件路径），例如 folder/subfolder/file.txt '''
+    """ 存储在 COS 中的对象键（即文件路径），例如 folder/subfolder/file.txt """
 
     file_path: str
-    ''' 本地文件路径，例如 /path/to/local/file.txt '''
+    """ 本地文件路径，例如 /path/to/local/file.txt """
