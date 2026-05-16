@@ -26,21 +26,33 @@ class ClaimStrategy(Base):
     """策略 ID，主键，自增"""
 
     user_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, unique=True, index=True,
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=True,
+        unique=True,
+        index=True,
     )
     """用户 ID，FK 到 users 表，NULL 表示系统默认策略"""
 
     max_claim_count: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=50, server_default="50",
+        Integer,
+        nullable=False,
+        default=50,
+        server_default="50",
     )
     """同时认领客户数上限，默认 50"""
 
     created_at: Mapped[object] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now(),
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
     )
     """创建时间"""
 
     updated_at: Mapped[object] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now(),
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
     )
     """更新时间"""

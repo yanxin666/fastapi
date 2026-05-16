@@ -28,17 +28,23 @@ class FollowupRecord(Base):
     """记录 ID，主键，自增"""
 
     customer_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False, index=True,
+        Integer,
+        ForeignKey("customers.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     """客户 ID，FK 到 customers 表"""
 
     user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=False,
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=False,
     )
     """创建跟进记录的用户 ID"""
 
     contact_time: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False,
+        DateTime(timezone=True),
+        nullable=False,
     )
     """联系时间"""
 
@@ -52,27 +58,39 @@ class FollowupRecord(Base):
     """跟进说明"""
 
     next_followup_time: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True, index=True,
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
     )
     """下次计划跟进时间，用于任务调度查询"""
 
     # ==================== 系统字段 ====================
     is_deleted: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=False, server_default="false", index=True,
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
+        index=True,
     )
     """软删除标记"""
 
     deleted_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True,
+        DateTime(timezone=True),
+        nullable=True,
     )
     """删除时间"""
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now(),
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
     )
     """创建时间"""
 
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now(),
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
     )
     """更新时间"""

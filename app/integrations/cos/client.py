@@ -1,15 +1,15 @@
-from qcloud_cos import CosConfig
-from qcloud_cos import CosS3Client
-import sys
 import logging
-from typing import Any
+import sys
 from threading import Lock
+from typing import Any
+
+from qcloud_cos import CosConfig, CosS3Client
 
 # 配置日志输出到控制台。
 # 默认 INFO：看到关键运行信息；排查问题时可改成 DEBUG。
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
-'''
+"""
 # 下面是官方示例（注释块），展示如何直接创建客户端。
 # 项目里改成了 _get_client() 懒加载单例方式，更适合实际项目复用。
 # secret_id = os.environ['COS_SECRET_ID']
@@ -19,7 +19,7 @@ logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 # scheme = 'https'
 # config = CosConfig(Region=region, SecretId=secret_id, SecretKey=secret_key, Token=token, Scheme=scheme)
 # client = CosS3Client(config)
-'''
+"""
 
 # 全局客户端实例缓存：
 # 第一次创建后保存到这里，后续直接复用，避免重复初始化。
@@ -35,7 +35,7 @@ def _get_client(
     secret_id: str,
     secret_key: str,
     token: str | None = None,
-    scheme: str = 'https',
+    scheme: str = "https",
 ):
     """
     获取 COS 客户端（单例模式，进程内只初始化一次）。

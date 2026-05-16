@@ -350,7 +350,9 @@ def import_file(file_path: Path) -> None:
         # 提交剩余记录
         db.commit()
 
-        print(f"  导入完成: 成功 {imported_count} 条, 跳过 {skipped_count} 条, 失败 {error_count} 条")
+        print(
+            f"  导入完成: 成功 {imported_count} 条, 跳过 {skipped_count} 条, 失败 {error_count} 条"
+        )
 
     except Exception as e:
         db.rollback()

@@ -30,12 +30,17 @@ class ClaimRecord(Base):
     """记录 ID，主键，自增"""
 
     customer_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False, index=True,
+        Integer,
+        ForeignKey("customers.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     """客户 ID，FK 到 customers 表"""
 
     user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=False,
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=False,
     )
     """认领用户 ID，FK 到 users 表"""
 
@@ -43,21 +48,27 @@ class ClaimRecord(Base):
     """认领状态：claimed（已认领）/ released（已释放）/ assigned（已调配）"""
 
     claim_time: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False,
+        DateTime(timezone=True),
+        nullable=False,
     )
     """认领/调配发生时间"""
 
     released_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True,
+        DateTime(timezone=True),
+        nullable=True,
     )
     """释放时间，仍被认领时为 NULL"""
 
     assigned_by: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
     )
     """调配人用户 ID，仅 claim_status=assigned 时有值"""
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now(),
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
     )
     """记录创建时间"""
