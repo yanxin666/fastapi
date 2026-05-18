@@ -379,7 +379,7 @@ export type CustomerDetail = {
   id: number
   // 认领信息
   user_id: number | null
-  claim_status: 'claimed' | 'unclaimed'
+  claim_status: 'claimed' | 'unclaimed' | 'possession'
   claim_user_name: string | null
   followup_at: string | null
   // 基本信息
@@ -605,6 +605,18 @@ export async function releaseCustomer(
     accessToken,
     method: 'POST',
     errorMessage: '释放认领失败',
+  })
+}
+
+/** 锁定客户（转为长期客户） */
+export async function possessionCustomer(
+  accessToken: string,
+  customerId: number,
+): Promise<CustomerDetail> {
+  return requestJson<CustomerDetail>(`/customers/${customerId}/possession`, {
+    accessToken,
+    method: 'POST',
+    errorMessage: '锁定客户失败',
   })
 }
 

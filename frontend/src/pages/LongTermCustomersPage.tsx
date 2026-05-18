@@ -1,8 +1,8 @@
 /**
- * 我的客户页面
+ * 长期客户页面
  *
- * 展示当前用户认领的客户列表，支持：
- * - 固定按 claimed_by=当前用户 筛选
+ * 展示当前用户占有的长期客户列表，支持：
+ * - 固定按 claimed_by=当前用户 且 claim_status=possession 筛选
  * - 跟进记录查看/创建
  * - 释放/批量释放认领
  * - 权限控制（需 CUSTOMER_CLAIM 权限访问）
@@ -16,7 +16,6 @@ import {
   Form,
   Input,
   Modal,
-  Popconfirm,
   Select,
   Space,
   Table,
@@ -34,7 +33,6 @@ import {
   deleteFollowup,
   listCustomers,
   listFollowups,
-  possessionCustomer,
   releaseCustomer,
   type CustomerDetail,
   type FollowupRecord,
@@ -106,12 +104,11 @@ function formatDateTime(value: string | null | undefined): string {
 
 // ==================== 页面组件 ====================
 
-export function MyCustomersPage() {
+export function LongTermCustomersPage() {
   const { message: messageApi } = AntApp.useApp()
   const { accessToken, logout, user: currentUser } = useAuth()
   const can = useCan()
   const canRelease = can('CUSTOMER_RELEASE')
-  const canPossession = can('CUSTOMER_POSSESSION')
   const canFollowupView = can('FOLLOWUP_VIEW')
   const canFollowupCreate = can('FOLLOWUP_CREATE')
   const canFollowupDelete = can('FOLLOWUP_DELETE')
@@ -135,9 +132,6 @@ export function MyCustomersPage() {
   // 释放状态
   const [releasingCustomerId, setReleasingCustomerId] = useState<number | null>(null)
   const [isBatchReleaseSubmitting, setIsBatchReleaseSubmitting] = useState(false)
-
-  // 锁定状态
-  const [possessingCustomerId, setPossessingCustomerId] = useState<number | null>(null)
 
   // 跟进记录弹窗状态
   const [followupCustomerId, setFollowupCustomerId] = useState<number | null>(null)
@@ -183,9 +177,10 @@ export function MyCustomersPage() {
     }))
 
     try {
+      // 长期客户筛选：claim_status=possession
       const result = await listCustomers(accessToken, {
         keyword: keyword || undefined,
-        claim_status: 'claimed',
+        claim_status: 'possession',
         claimed_by: currentUser.id,
         page: currentPage,
         page_size: pageSize,
@@ -202,7 +197,7 @@ export function MyCustomersPage() {
         status: 'error',
         items: prev.items,
         total: prev.total,
-        message: getErrorMessage(error, '加载我的客户失败'),
+        message: getErrorMessage(error, '加载长期客户失败'),
       }))
     }
   }, [accessToken, keyword, currentUser, currentPage, pageSize, handleUnauthorized])
@@ -250,26 +245,6 @@ export function MyCustomersPage() {
       messageApi.error(getErrorMessage(error, '批量释放失败'))
     } finally {
       setIsBatchReleaseSubmitting(false)
-    }
-  }
-
-  // ==================== 锁定操作 ====================
-
-  /** 锁定客户，将其转为长期客户 */
-  const handlePossession = async (customerId: number) => {
-    if (!accessToken) return
-
-    setPossessingCustomerId(customerId)
-    try {
-      await possessionCustomer(accessToken, customerId)
-      messageApi.success('锁定成功，客户已转为长期客户')
-      setSelectedRowKeys([])
-      await loadCustomers()
-    } catch (error) {
-      if (await handleUnauthorized(error)) return
-      messageApi.error(getErrorMessage(error, '锁定失败'))
-    } finally {
-      setPossessingCustomerId(null)
     }
   }
 
@@ -414,7 +389,7 @@ export function MyCustomersPage() {
     {
       title: '操作',
       key: 'actions',
-      width: 290,
+      width: 220,
       render: (_, customer) => (
         <Space wrap>
           {canFollowupCreate ? (
@@ -429,25 +404,6 @@ export function MyCustomersPage() {
             <Button size="small" onClick={() => void openFollowupModal(customer.id)}>
               跟进记录
             </Button>
-          ) : null}
-          {canPossession ? (
-            <Popconfirm
-              title="确定锁定该客户？"
-              description="锁定后客户将转为长期客户"
-              onConfirm={() => void handlePossession(customer.id)}
-              okText="确定"
-              cancelText="取消"
-            >
-              <Button
-                size="small"
-                type="primary"
-                danger
-                loading={possessingCustomerId === customer.id}
-                onClick={(e) => e.stopPropagation()}
-              >
-                锁定
-              </Button>
-            </Popconfirm>
           ) : null}
           {canRelease ? (
             <Button
@@ -470,7 +426,7 @@ export function MyCustomersPage() {
       <Space direction="vertical" size="large" style={{ display: 'flex' }}>
         {/* 标题卡片 */}
         <Card
-          title={<Typography.Title level={2} style={{ margin: 0 }}>我的客户</Typography.Title>}
+          title={<Typography.Title level={2} style={{ margin: 0 }}>长期客户</Typography.Title>}
           extra={
             <Button onClick={() => void loadCustomers()} loading={customersState.status === 'loading'}>
               刷新
@@ -478,7 +434,7 @@ export function MyCustomersPage() {
           }
         >
           <Typography.Paragraph style={{ marginBottom: 0 }}>
-            当前用户认领的客户列表，支持跟进记录和释放操作。
+            当前用户占有的长期客户列表，支持跟进记录和释放操作。
           </Typography.Paragraph>
         </Card>
 

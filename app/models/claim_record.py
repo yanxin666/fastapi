@@ -45,7 +45,7 @@ class ClaimRecord(Base):
     """认领用户 ID，FK 到 users 表"""
 
     claim_status: Mapped[str] = mapped_column(String(20), nullable=False)
-    """认领状态：claimed（已认领）/ released（已释放）/ assigned（已调配）"""
+    """认领状态：claimed（已认领）/ released（已释放）/ assigned（已调配）/ possession（长期客户）"""
 
     claim_time: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

@@ -46,6 +46,12 @@ export const adminNavigationItems: AdminNavigationItem[] = [
     permission: ROUTE_POLICIES['/my-customers'],
   },
   {
+    key: '/long-term-customers',
+    path: '/long-term-customers',
+    label: '长期客户',
+    permission: ROUTE_POLICIES['/long-term-customers'],
+  },
+  {
     key: '/claim-strategies',
     path: '/claim-strategies',
     label: '认领策略',

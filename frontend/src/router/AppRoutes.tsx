@@ -10,6 +10,7 @@ import { DashboardPage } from '../pages/DashboardPage'
 import { ForbiddenPage } from '../pages/ForbiddenPage'
 import { LoginPage } from '../pages/LoginPage'
 import { MyCustomersPage } from '../pages/MyCustomersPage'
+import { LongTermCustomersPage } from '../pages/LongTermCustomersPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { PermissionsPage } from '../pages/PermissionsPage'
 import { RolesPage } from '../pages/RolesPage'
@@ -99,6 +100,10 @@ export function AppRoutes() {
 
           <Route element={<PermissionRoute permission={ROUTE_POLICIES['/my-customers']} />}>
             <Route path="my-customers" element={<MyCustomersPage />} />
+          </Route>
+
+          <Route element={<PermissionRoute permission={ROUTE_POLICIES['/long-term-customers']} />}>
+            <Route path="long-term-customers" element={<LongTermCustomersPage />} />
           </Route>
 
           <Route element={<PermissionRoute permission={ROUTE_POLICIES['/claim-strategies']} />}>

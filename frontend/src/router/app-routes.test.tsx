@@ -80,6 +80,10 @@ describe('app routing', () => {
       { key: '/users', path: '/users', label: '用户管理', permission: 'user:view' },
       { key: '/roles', path: '/roles', label: '角色管理', permission: 'role:view' },
       { key: '/permissions', path: '/permissions', label: '权限列表', permission: 'permission:view' },
+      { key: '/customers', path: '/customers', label: '客户公海', permission: 'customer:view' },
+      { key: '/my-customers', path: '/my-customers', label: '我的客户', permission: 'customer:claim' },
+      { key: '/long-term-customers', path: '/long-term-customers', label: '长期客户', permission: 'customer:claim' },
+      { key: '/claim-strategies', path: '/claim-strategies', label: '认领策略', permission: 'strategy:view' },
     ])
   })
 

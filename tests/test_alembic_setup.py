@@ -14,7 +14,7 @@ from app.core.config import get_settings
 REPO_ROOT = Path(__file__).resolve().parents[1]
 ALEMBIC_INI = REPO_ROOT / "alembic.ini"
 ALEMBIC_DIR = REPO_ROOT / "alembic"
-HEAD_REVISION = "0002_auth_core"
+HEAD_REVISION = "0007_add_customer_claim_status"
 EXPECTED_TABLES = {
     "alembic_version",
     "audit_logs",

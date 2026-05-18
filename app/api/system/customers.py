@@ -210,7 +210,7 @@ def list_customers(
     feedback_status: str | None = Query(None, description="反馈状态筛选"),
     customer_stage: str | None = Query(None, description="客户阶段筛选"),
     claim_status: str | None = Query(
-        None, description="认领状态筛选：unclaimed(公海)/claimed(已认领)"
+        None, description="认领状态筛选：unclaimed(公海)/claimed(已认领)/possession(长期客户)"
     ),
     claimed_by: int | None = Query(None, description="按认领用户 ID 筛选"),
     page: int = Query(1, ge=1, description="页码"),
@@ -251,11 +251,14 @@ def list_customers(
 
     # 认领状态筛选
     if claim_status == "unclaimed":
-        # 公海客户：user_id 为 NULL
-        query = query.where(Customer.user_id.is_(None))
+        # 公海客户：claim_status 为 NULL
+        query = query.where(Customer.claim_status.is_(None))
     elif claim_status == "claimed":
-        # 已认领客户：user_id 不为 NULL
-        query = query.where(Customer.user_id.isnot(None))
+        # 已认领客户（不含长期客户）
+        query = query.where(Customer.claim_status == "claimed")
+    elif claim_status == "possession":
+        # 长期客户
+        query = query.where(Customer.claim_status == "possession")
 
     # 按认领用户筛选
     if claimed_by is not None:
@@ -506,6 +509,7 @@ def claim_customer(
 
     # 冗余更新 customers.user_id，加速"我的客户"查询
     customer.user_id = current_user.id
+    customer.claim_status = "claimed"
     # 更新分配类型为公海领取
     customer.assign_type = "公海领取"
     customer.assigned_at = now
@@ -564,6 +568,7 @@ def batch_claim_customers(
         )
         db.add(claim_record)
         customer.user_id = current_user.id
+        customer.claim_status = "claimed"
         customer.assign_type = "公海领取"
         customer.assigned_at = now
 
@@ -609,6 +614,7 @@ def release_customer(
 
     # 清除冗余的 user_id，客户回到公海
     customer.user_id = None
+    customer.claim_status = None
     customer.assign_type = None
     customer.assigned_at = None
 
@@ -653,6 +659,7 @@ def batch_release_customers(
         )
         db.add(claim_record)
         customer.user_id = None
+        customer.claim_status = None
         customer.assign_type = None
         customer.assigned_at = None
 
@@ -729,6 +736,7 @@ def assign_customer(
 
     # 更新客户表的冗余字段
     customer.user_id = target_user.id
+    customer.claim_status = "claimed"
     customer.assign_type = "主管调配"
     customer.assigned_at = now
 
@@ -789,6 +797,8 @@ def claim_customer(
 
     # 冗余更新 customers.user_id，加速"我的客户"查询
     customer.user_id = current_user.id
+    # 锁定客户：更新认领状态为 possession
+    customer.claim_status = "possession"
     # 更新分配类型为公海领取
     customer.assign_type = "公海领取"
     customer.assigned_at = now
@@ -846,7 +856,7 @@ def _serialize_customer(
         "id": customer.id,
         # 认领信息
         "user_id": customer.user_id,
-        "claim_status": "claimed" if customer.user_id is not None else "unclaimed",
+        "claim_status": customer.claim_status or "unclaimed",
         "claim_user_name": claim_user_name,
         "followup_at": (
             customer.followup_at.isoformat() if customer.followup_at else None

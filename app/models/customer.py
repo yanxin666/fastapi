@@ -38,6 +38,13 @@ class Customer(Base):
     )
     """当前认领用户 ID，FK 到 users 表，NULL 表示未被认领（公海客户）"""
 
+    claim_status: Mapped[str | None] = mapped_column(
+        String(20),
+        nullable=True,
+        index=True,
+    )
+    """当前认领状态快照：claimed(已认领)/possession(长期客户)/assigned(已调配)，NULL 表示公海"""
+
     followup_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
