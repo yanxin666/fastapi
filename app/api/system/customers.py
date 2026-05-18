@@ -243,11 +243,11 @@ def list_customers(
 
     # 反馈状态筛选
     if feedback_status:
-        query = query.where(Customer.feedback_status == feedback_status)
+        query = query.where(Customer.feedback_status == feedback_status)  # 确保类型一致
 
     # 客户阶段筛选
     if customer_stage:
-        query = query.where(Customer.customer_stage == customer_stage)
+        query = query.where(Customer.customer_stage == customer_stage)  # 确保类型一致
 
     # 认领状态筛选
     if claim_status == "unclaimed":
@@ -259,7 +259,7 @@ def list_customers(
 
     # 按认领用户筛选
     if claimed_by is not None:
-        query = query.where(Customer.user_id == claimed_by)
+        query = query.where(Customer.user_id == claimed_by)  # 确保类型一致
 
     # 计算总数（在分页前）
     count_query = select(func.count()).select_from(query.subquery())
@@ -448,7 +448,10 @@ def _get_current_claim_count(db: Session, user_id: int) -> int:
         db.execute(
             select(func.count(ClaimRecord.id)).where(
                 ClaimRecord.user_id == user_id,
-                ClaimRecord.claim_status == "claimed",
+                or_(
+                    ClaimRecord.claim_status == "claimed",
+                    ClaimRecord.claim_status == "possession"
+                ),
             )
         ).scalar()
         or 0
@@ -582,7 +585,7 @@ def release_customer(
 
     逻辑：
     1. 验证客户被当前用户认领
-    2. 事务中：插入 claim_record(status=released) + 设置 customers.user_id=NULL
+    2. 事务中：更新 claim_record(status=released) + 设置 customers.user_id=NULL
     """
     customer = db.get(Customer, customer_id)
     if customer is None:
@@ -592,22 +595,24 @@ def release_customer(
     if customer.user_id != current_user.id:
         raise HTTPException(status_code=400, detail="只能释放自己认领的客户")
 
-    # 执行释放：插入释放记录 + 清除客户认领人
-    now = datetime.now(timezone.utc)
-    claim_record = ClaimRecord(
-        customer_id=customer_id,
-        user_id=current_user.id,
-        claim_status="released",
-        claim_time=now,
-        released_at=now,
+    # 执行释放：更新释放记录
+    now = datetime.now(timezone.utc)  # 使用 UTC 时间
+    db.query(ClaimRecord).filter(
+        ClaimRecord.customer_id == customer_id,
+        ClaimRecord.user_id == current_user.id,
+    ).update(
+        {
+            ClaimRecord.claim_status: "released",
+            ClaimRecord.released_at: now,
+        }
     )
-    db.add(claim_record)
 
     # 清除冗余的 user_id，客户回到公海
     customer.user_id = None
     customer.assign_type = None
     customer.assigned_at = None
 
+    # 提交事务
     db.commit()
     db.refresh(customer)
     return _serialize_customer(customer, current_user)
@@ -689,8 +694,8 @@ def assign_customer(
         raise HTTPException(status_code=400, detail="已删除的客户不能调配")
 
     # 检查目标用户认领上限（统计目标用户当前认领数，排除本客户如果已属于目标用户）
-    claim_limit = _get_claim_limit(db, target_user.id)
-    target_claim_count = _get_current_claim_count(db, target_user.id)
+    claim_limit = int(_get_claim_limit(db, target_user.id))  # 显式转换为 int
+    target_claim_count = int(_get_current_claim_count(db, target_user.id))  # 显式转换为 int
     # 如果客户已被目标用户认领，不需要额外配额
     if customer.user_id != target_user.id and target_claim_count >= claim_limit:
         raise HTTPException(
@@ -705,7 +710,7 @@ def assign_customer(
         old_user_id = customer.user_id
         release_record = ClaimRecord(
             customer_id=customer_id,
-            user_id=old_user_id,
+            user_id=int(old_user_id),  # 显式转换为 int
             claim_status="released",
             claim_time=now,
             released_at=now,
@@ -715,7 +720,7 @@ def assign_customer(
     # 为目标用户创建 assigned 记录
     claim_record = ClaimRecord(
         customer_id=customer_id,
-        user_id=target_user.id,
+        user_id=int(target_user.id),  # 显式转换为 int
         claim_status="assigned",
         claim_time=now,
         assigned_by=current_user.id,
@@ -731,6 +736,66 @@ def assign_customer(
     db.refresh(customer)
     return _serialize_customer(customer, current_user)
 
+@router.post("/customers/{customer_id}/possession")
+def claim_customer(
+    customer_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    占有单个客户
+
+    逻辑：
+    1. 验证客户被认领且未软删除
+    2. 查询认领策略上限
+    3. 检查当前用户是否已达上限
+    4. 事务中：更新 claim_record + 更新 customers.user_id
+    """
+    customer = db.get(Customer, customer_id)
+    if customer is None:
+        raise HTTPException(status_code=404, detail="客户不存在")
+
+    # 验证客户未被软删除
+    if customer.is_deleted:
+        raise HTTPException(status_code=400, detail="已删除的客户不能认领")
+
+    # 验证客户未被认领
+    if customer.user_id is None:
+        raise HTTPException(status_code=400, detail="该客户未被认领")
+    if customer.user_id != current_user.id:
+        raise HTTPException(status_code=400, detail="只能占有自己认领的客户")
+
+    # 检查认领上限
+    claim_limit = _get_claim_limit(db, current_user.id)
+    current_count = _get_current_claim_count(db, current_user.id)
+    if current_count >= claim_limit:
+        raise HTTPException(
+            status_code=400,
+            detail=f"已达到认领上限（{claim_limit}），无法继续认领",
+        )
+
+    # 执行认领：插入认领记录 + 更新客户表
+    now = datetime.now(timezone.utc)
+    db.query(ClaimRecord).filter(
+        ClaimRecord.customer_id == customer_id,
+        ClaimRecord.user_id == current_user.id,
+        ClaimRecord.claim_status == "claimed",
+    ).update(
+        {
+            ClaimRecord.claim_status: "possession",
+            ClaimRecord.claim_time: now,
+        }
+    )
+
+    # 冗余更新 customers.user_id，加速"我的客户"查询
+    customer.user_id = current_user.id
+    # 更新分配类型为公海领取
+    customer.assign_type = "公海领取"
+    customer.assigned_at = now
+
+    db.commit()
+    db.refresh(customer)
+    return _serialize_customer(customer, current_user)
 
 # ==================== 序列化函数 ====================
 
