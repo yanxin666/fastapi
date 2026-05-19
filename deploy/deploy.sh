@@ -28,15 +28,15 @@ echo "===== CRM 部署开始 ====="
 #sudo apt-get install -y postgresql nginx git software-properties-common -qq
 
 # 安装 Python 3.12（通过 deadsnakes PPA，与系统 Python 3.10 并行，互不影响）
-if ! command -v $PYTHON_BIN &> /dev/null; then
-    echo "  安装 Python ${PYTHON_VERSION}（deadsnakes PPA）..."
-    sudo add-apt-repository -y ppa:deadsnakes/ppa
-    sudo apt-get update -qq
-    sudo apt-get install -y ${PYTHON_BIN} ${PYTHON_BIN}-venv ${PYTHON_BIN}-dev -qq
-    echo "  Python ${PYTHON_VERSION} 已安装: $($PYTHON_BIN --version)"
-else
-    echo "  Python ${PYTHON_VERSION} 已存在: $($PYTHON_BIN --version)"
-fi
+#if ! command -v $PYTHON_BIN &> /dev/null; then
+#    echo "  安装 Python ${PYTHON_VERSION}（deadsnakes PPA）..."
+#    sudo add-apt-repository -y ppa:deadsnakes/ppa
+#    sudo apt-get update -qq
+#    sudo apt-get install -y ${PYTHON_BIN} ${PYTHON_BIN}-venv ${PYTHON_BIN}-dev -qq
+#    echo "  Python ${PYTHON_VERSION} 已安装: $($PYTHON_BIN --version)"
+#else
+#    echo "  Python ${PYTHON_VERSION} 已存在: $($PYTHON_BIN --version)"
+#fi
 
 # ---- 2. 同步项目代码 ----
 echo "[2/7] 同步项目代码..."
@@ -163,19 +163,19 @@ echo "  Python:  $($APP_DIR/.venv/bin/python --version)"
 echo "  Node.js: $(node --version 2>/dev/null || echo '未安装')"
 echo "  版本:    $(cd $APP_DIR && sudo git log --oneline -1)"
 echo ""
-echo "后续步骤（首次部署时）："
-echo "  1. 编辑 /opt/crm/.env 填写数据库密码和 JWT 密钥"
-echo "  2. 创建 PostgreSQL 数据库和用户："
-echo "     sudo -u postgres createuser crm"
-echo "     sudo -u postgres createdb crm -O crm"
-echo "     sudo -u postgres psql -c \"ALTER USER crm PASSWORD '你的密码';\""
-echo "  3. 执行数据库迁移："
-echo "     cd /opt/crm && sudo -u www-data .venv/bin/python -m alembic upgrade head"
-echo "  4. 同步权限数据："
-echo "     cd /opt/crm && sudo -u www-data .venv/bin/python -m app.cli seed-permissions"
-echo "  5. 启动服务："
-echo "     sudo systemctl start crm"
-echo ""
-echo "更新部署（后续迭代时）："
-echo "  bash deploy/deploy.sh                  # 自动 git pull + 重新安装依赖 + 重启"
-echo "  sudo systemctl restart crm             # 代码更新后需重启后端"
+#echo "后续步骤（首次部署时）："
+#echo "  1. 编辑 /opt/crm/.env 填写数据库密码和 JWT 密钥"
+#echo "  2. 创建 PostgreSQL 数据库和用户："
+#echo "     sudo -u postgres createuser crm"
+#echo "     sudo -u postgres createdb crm -O crm"
+#echo "     sudo -u postgres psql -c \"ALTER USER crm PASSWORD '你的密码';\""
+#echo "  3. 执行数据库迁移："
+#echo "     cd /opt/crm && sudo -u www-data .venv/bin/python -m alembic upgrade head"
+#echo "  4. 同步权限数据："
+#echo "     cd /opt/crm && sudo -u www-data .venv/bin/python -m app.cli seed-permissions"
+#echo "  5. 启动服务："
+#echo "     sudo systemctl start crm"
+#echo ""
+#echo "更新部署（后续迭代时）："
+#echo "  bash deploy/deploy.sh                  # 自动 git pull + 重新安装依赖 + 重启"
+#echo "  sudo systemctl restart crm             # 代码更新后需重启后端"
