@@ -5,15 +5,19 @@
 2、标签，字段名为 tag，默认为 "second_import"。
 """
 
+import sys
+import os
+
+# 动态添加项目根目录到 sys.path
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(project_root)
+
 
 def import_phone():
-    import os
     import time
     from app.core.db import get_session_factory
     from app.models.customer import Customer
 
-    # 获取项目根目录
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     phone_file_path = os.path.join(project_root, "doc", "phone")
 
     session_factory = get_session_factory()
@@ -48,3 +52,4 @@ def import_phone():
 
 if __name__ == "__main__":
     import_phone()
+
