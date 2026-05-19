@@ -209,6 +209,7 @@ def list_customers(
     keyword: str | None = Query(None, description="关键词搜索（姓名/电话）"),
     feedback_status: str | None = Query(None, description="反馈状态筛选"),
     customer_stage: str | None = Query(None, description="客户阶段筛选"),
+    customer_tag: str | None = Query(None, description="客户标签筛选"),
     claim_status: str | None = Query(
         None, description="认领状态筛选：unclaimed(公海)/claimed(已认领)/possession(长期客户)"
     ),
@@ -248,6 +249,10 @@ def list_customers(
     # 客户阶段筛选
     if customer_stage:
         query = query.where(Customer.customer_stage == customer_stage)  # 确保类型一致
+
+    # 客户标签筛选
+    if customer_tag:
+        query = query.where(Customer.tag == customer_tag)  # 确保类型一致
 
     # 认领状态筛选
     if claim_status == "unclaimed":

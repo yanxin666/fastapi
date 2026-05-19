@@ -494,6 +494,7 @@ type ListCustomersParams = {
   customer_stage?: string
   claim_status?: string
   claimed_by?: number
+  customer_tag?: string
   page?: number
   page_size?: number
 }
@@ -509,6 +510,7 @@ export async function listCustomers(
   if (params?.customer_stage) searchParams.set('customer_stage', params.customer_stage)
   if (params?.claim_status) searchParams.set('claim_status', params.claim_status)
   if (params?.claimed_by) searchParams.set('claimed_by', String(params.claimed_by))
+  if (params?.customer_tag) searchParams.set('customer_tag', params.customer_tag)
   if (params?.page) searchParams.set('page', String(params.page))
   if (params?.page_size) searchParams.set('page_size', String(params.page_size))
 

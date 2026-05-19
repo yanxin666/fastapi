@@ -100,6 +100,11 @@ const CLAIM_STATUS_OPTIONS = [
   { label: '已认领', value: 'claimed' },
 ]
 
+/** 客户标签选项 */
+const CUSTOMER_TAG_OPTIONS = [
+  { label: '第二批次', value: 'second_import' },
+]
+
 /** 意向度选项 */
 const INTENTION_OPTIONS = [
   { label: '没有咨询', value: '没有咨询' },
@@ -202,6 +207,7 @@ export function CustomersPage() {
   const [filterFeedbackStatus, setFilterFeedbackStatus] = useState<string | undefined>(undefined)
   const [filterCustomerStage, setFilterCustomerStage] = useState<string | undefined>(undefined)
   const [filterClaimStatus, setFilterClaimStatus] = useState<string | undefined>(undefined)
+  const [filterCustomerTag, setFilterCustomerTag] = useState<string | undefined>(undefined)
   const [currentPage, setCurrentPage] = useState(DEFAULT_PAGE)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
 
@@ -292,6 +298,7 @@ export function CustomersPage() {
         feedback_status: filterFeedbackStatus,
         customer_stage: filterCustomerStage,
         claim_status: filterClaimStatus,
+        customer_tag: filterCustomerTag,
         page: currentPage,
         page_size: pageSize,
       })
@@ -311,7 +318,7 @@ export function CustomersPage() {
         message: getErrorMessage(error, '加载客户列表失败'),
       }))
     }
-  }, [accessToken, keyword, filterFeedbackStatus, filterCustomerStage, filterClaimStatus, currentPage, pageSize, handleUnauthorized])
+  }, [accessToken, keyword, filterFeedbackStatus, filterCustomerStage, filterClaimStatus, filterCustomerTag, currentPage, pageSize, handleUnauthorized])
 
   useEffect(() => {
     void loadCustomers()
@@ -663,15 +670,17 @@ export function CustomersPage() {
   }
 
   const handleFilterChange = (
-    type: 'feedback_status' | 'customer_stage' | 'claim_status',
+    type: 'feedback_status' | 'customer_stage' | 'claim_status' | 'customer_tag',
     value: string | undefined,
   ) => {
     if (type === 'feedback_status') {
       setFilterFeedbackStatus(value)
     } else if (type === 'customer_stage') {
       setFilterCustomerStage(value)
-    } else {
+    } else if (type === 'claim_status') {
       setFilterClaimStatus(value)
+    } else if (type === 'customer_tag') {
+      setFilterCustomerTag(value)
     }
     setCurrentPage(DEFAULT_PAGE)
   }
@@ -1049,6 +1058,13 @@ export function CustomersPage() {
               allowClear
               options={CUSTOMER_STAGE_OPTIONS}
               onChange={(value) => handleFilterChange('customer_stage', value)}
+              style={{ width: 140 }}
+            />
+            <Select
+              placeholder="客户标签"
+              allowClear
+              options={CUSTOMER_TAG_OPTIONS}
+              onChange={(value) => handleFilterChange('customer_tag', value)}
               style={{ width: 140 }}
             />
           </Space>
