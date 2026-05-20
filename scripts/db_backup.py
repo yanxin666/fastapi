@@ -12,8 +12,13 @@ PostgreSQL 数据库备份脚本
     - 恢复方式：pg_restore -h host -U user -d dbname file.dump
     - COS 路径：dbBack/YYYYMMDD.dump
 
+运行模式（通过环境变量 APP_PG_DUMP_CONTAINER 控制）：
+    - Docker 模式：设置 APP_PG_DUMP_CONTAINER 为 PostgreSQL 容器名，
+      脚本会通过 docker exec 在容器内执行 pg_dump，确保版本匹配
+    - 直接模式（默认）：使用宿主机上的 pg_dump，需确保版本与服务器一致
+
 注意事项：
-    - 需要 pg_dump 在系统 PATH 中可用
+    - Docker 部署的 PostgreSQL 推荐使用 Docker 模式
     - 需要 .env 中配置 APP_DATABASE_URL 和腾讯云 COS 密钥
 """
 
@@ -63,14 +68,194 @@ def parse_database_url(database_url: str) -> dict:
     }
 
 
-def run_pg_dump(db_params: dict, output_path: Path) -> None:
+def _get_pg_dump_container() -> str | None:
     """
-    执行 pg_dump 命令生成数据库备份文件。
+    获取 PostgreSQL 容器名称。
+
+    优先从环境变量 APP_PG_DUMP_CONTAINER 读取，
+    未设置则返回 None（使用直接模式）。
+    """
+    return os.environ.get("APP_PG_DUMP_CONTAINER")
+
+
+def _get_server_major_version(db_params: dict) -> int | None:
+    """通过 psycopg 连接数据库查询服务器的主版本号（如 18、14）。"""
+    try:
+        import psycopg
+
+        conninfo = (
+            f"host={db_params['host']} "
+            f"port={db_params['port']} "
+            f"user={db_params['user']} "
+            f"password={db_params['password']} "
+            f"dbname={db_params['dbname']}"
+        )
+        with psycopg.connect(conninfo) as conn:
+            result = conn.execute("SELECT current_setting('server_version_num')").fetchone()
+            if result:
+                # server_version_num 格式如 180003，除以 10000 取主版本号
+                version_num = int(result[0])
+                return version_num // 10000
+    except Exception as e:
+        print(f"查询数据库服务器版本失败: {e}")
+
+    return None
+
+
+def _get_client_major_version(pg_dump_path: str) -> int | None:
+    """获取 pg_dump 客户端的主版本号。"""
+    try:
+        result = subprocess.run(
+            [pg_dump_path, "--version"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        if result.returncode == 0:
+            # 输出格式如: pg_dump (PostgreSQL) 14.22 或 pg_dump (PostgreSQL) 18.3
+            import re
+            match = re.search(r"(\d+)", result.stdout)
+            if match:
+                return int(match.group(1))
+    except Exception:
+        pass
+
+    return None
+
+
+def _find_versioned_pg_dump(target_major: int) -> str | None:
+    """
+    在系统常见路径中查找指定主版本号的 pg_dump。
+
+    Linux: /usr/lib/postgresql/{version}/bin/pg_dump
+    Windows: C:\\Program Files\\PostgreSQL\\{version}\\bin\\pg_dump.exe
+    """
+    # Linux 版本专属路径
+    linux_base = Path("/usr/lib/postgresql")
+    if linux_base.exists():
+        pg_dump_path = linux_base / str(target_major) / "bin" / "pg_dump"
+        if pg_dump_path.exists():
+            print(f"自动检测到 pg_dump: {pg_dump_path}（版本 {target_major}）")
+            return str(pg_dump_path)
+
+    # Windows 版本专属路径
+    win_base = Path("C:/Program Files/PostgreSQL")
+    if win_base.exists():
+        pg_dump_path = win_base / str(target_major) / "bin" / "pg_dump.exe"
+        if pg_dump_path.exists():
+            print(f"自动检测到 pg_dump: {pg_dump_path}（版本 {target_major}）")
+            return str(pg_dump_path)
+
+    return None
+
+
+def _resolve_pg_dump_cmd(db_params: dict) -> str:
+    """
+    解析可用的 pg_dump 命令路径。
+
+    优先级：
+    1. 环境变量 APP_PG_DUMP_PATH 指定的路径
+    2. 版本专属目录中匹配服务器版本的 pg_dump
+    3. 系统 PATH 中的 pg_dump
+    """
+    # 优先使用环境变量指定的路径
+    env_path = os.environ.get("APP_PG_DUMP_PATH")
+    if env_path:
+        if Path(env_path).exists():
+            print(f"使用环境变量指定的 pg_dump: {env_path}")
+            return env_path
+        print(f"警告: APP_PG_DUMP_PATH={env_path} 不存在，尝试自动检测")
+
+    # 查询服务器版本，查找匹配的 pg_dump
+    server_major = _get_server_major_version(db_params)
+    if server_major:
+        print(f"PostgreSQL 服务器主版本: {server_major}")
+        pg_dump_path = _find_versioned_pg_dump(server_major)
+        if pg_dump_path:
+            return pg_dump_path
+
+    # 回退到系统 PATH
+    return "pg_dump"
+
+
+def _check_pg_dump_version(pg_dump_cmd: str, db_params: dict) -> None:
+    """
+    检查 pg_dump 客户端版本是否与服务器匹配。
+
+    pg_dump 要求客户端版本 >= 服务器版本，否则无法备份。
+    版本不匹配时给出明确的安装提示。
+    """
+    server_major = _get_server_major_version(db_params)
+    client_major = _get_client_major_version(pg_dump_cmd)
+
+    if server_major and client_major and client_major < server_major:
+        raise RuntimeError(
+            f"pg_dump 版本不匹配：客户端 {client_major} < 服务器 {server_major}\n"
+            f"请通过以下方式之一解决：\n"
+            f"  1. 设置 APP_PG_DUMP_CONTAINER 环境变量为 PostgreSQL 容器名（推荐 Docker 部署场景）\n"
+            f"  2. 设置 APP_PG_DUMP_PATH 环境变量指向版本 {server_major} 的 pg_dump 路径\n"
+            f"  3. 安装匹配版本的客户端：apt install postgresql-client-{server_major}"
+        )
+
+
+def run_pg_dump_docker(container: str, db_params: dict, output_path: Path) -> None:
+    """
+    通过 docker exec 在 PostgreSQL 容器内执行 pg_dump。
+
+    容器内的 pg_dump 版本与服务器一致，不存在版本不匹配问题。
+    使用 stdout 重定向方式将备份输出到宿主机文件，无需挂载卷。
+    """
+    # docker exec 命令：在容器内执行 pg_dump，输出到 stdout
+    cmd = [
+        "docker", "exec",
+        "-e", f"PGUSER={db_params['user']}",
+        "-e", f"PGPASSWORD={db_params['password']}",
+        "-e", f"PGDATABASE={db_params['dbname']}",
+        container,
+        "pg_dump", "-Fc", "--no-password",
+    ]
+
+    print(f"正在通过 Docker 容器 {container} 执行 pg_dump 备份数据库: {db_params['dbname']}")
+
+    # 写入输出文件：从 docker exec 的 stdout 接收二进制备份数据
+    with open(output_path, "wb") as f:
+        result = subprocess.run(
+            cmd,
+            stdout=f,
+            stderr=subprocess.PIPE,
+        )
+
+    if result.returncode != 0:
+        error_msg = result.stderr.decode(errors="replace").strip() or "未知错误"
+        # 清理失败的空文件
+        if output_path.exists():
+            output_path.unlink()
+        raise RuntimeError(f"docker exec pg_dump 执行失败（返回码 {result.returncode}）: {error_msg}")
+
+    # 确保备份文件已生成且非空
+    if not output_path.exists() or output_path.stat().st_size == 0:
+        if output_path.exists():
+            output_path.unlink()
+        raise RuntimeError("pg_dump 执行完成但备份文件为空或不存在")
+
+    file_size_mb = output_path.stat().st_size / (1024 * 1024)
+    print(f"数据库备份完成，文件大小: {file_size_mb:.2f} MB")
+
+
+def run_pg_dump_direct(db_params: dict, output_path: Path) -> None:
+    """
+    直接在宿主机执行 pg_dump 命令生成数据库备份文件。
 
     使用 -Fc 选项生成自定义格式备份（压缩），恢复时使用 pg_restore。
     所有连接参数通过 PostgreSQL 标准环境变量传递，避免命令行暴露敏感信息。
     --no-password 确保认证失败时立即报错，而非挂住等待交互输入。
     """
+    # 检测匹配服务器版本的 pg_dump
+    pg_dump_cmd = _resolve_pg_dump_cmd(db_params)
+
+    # 检测 pg_dump 客户端版本是否与服务器匹配，不匹配则提前报错
+    _check_pg_dump_version(pg_dump_cmd, db_params)
+
     # 构建环境变量：使用 PostgreSQL 标准连接参数环境变量
     env = os.environ.copy()
     env["PGHOST"] = str(db_params["host"])
@@ -80,7 +265,7 @@ def run_pg_dump(db_params: dict, output_path: Path) -> None:
     env["PGPASSWORD"] = db_params["password"]
 
     cmd = [
-        "pg_dump",
+        pg_dump_cmd,
         "-Fc",
         "--no-password",
         "-f", str(output_path),
@@ -97,14 +282,35 @@ def run_pg_dump(db_params: dict, output_path: Path) -> None:
 
     if result.returncode != 0:
         error_msg = result.stderr.strip() or result.stdout.strip() or "未知错误"
+        # 清理失败的文件
+        if output_path.exists():
+            output_path.unlink()
         raise RuntimeError(f"pg_dump 执行失败（返回码 {result.returncode}）: {error_msg}")
 
     # 确保备份文件已生成且非空
     if not output_path.exists() or output_path.stat().st_size == 0:
+        if output_path.exists():
+            output_path.unlink()
         raise RuntimeError("pg_dump 执行完成但备份文件为空或不存在")
 
     file_size_mb = output_path.stat().st_size / (1024 * 1024)
     print(f"数据库备份完成，文件大小: {file_size_mb:.2f} MB")
+
+
+def run_pg_dump(db_params: dict, output_path: Path) -> None:
+    """
+    执行 pg_dump 备份数据库，自动选择运行模式。
+
+    如果设置了 APP_PG_DUMP_CONTAINER 环境变量，使用 Docker 模式；
+    否则使用直接模式（宿主机 pg_dump）。
+    """
+    container = _get_pg_dump_container()
+    if container:
+        print(f"使用 Docker 模式，容器: {container}")
+        run_pg_dump_docker(container, db_params, output_path)
+    else:
+        print("使用直接模式（宿主机 pg_dump）")
+        run_pg_dump_direct(db_params, output_path)
 
 
 def get_cos_service() -> COSService:
