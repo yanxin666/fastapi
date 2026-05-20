@@ -149,6 +149,7 @@ echo "[7/7] 配置 Systemd 服务..."
 sudo cp $APP_DIR/deploy/crm.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable crm
+sudo systemctl restart crm
 
 # ---- 设置文件权限 ----
 # .git 目录保留 root 权限，防止 www-data 修改仓库状态
