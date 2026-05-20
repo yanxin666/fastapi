@@ -495,6 +495,7 @@ type ListCustomersParams = {
   claim_status?: string
   claimed_by?: number
   customer_tag?: string
+  intention?: string
   page?: number
   page_size?: number
 }
@@ -511,6 +512,7 @@ export async function listCustomers(
   if (params?.claim_status) searchParams.set('claim_status', params.claim_status)
   if (params?.claimed_by) searchParams.set('claimed_by', String(params.claimed_by))
   if (params?.customer_tag) searchParams.set('customer_tag', params.customer_tag)
+  if (params?.intention) searchParams.set('intention', params.intention)
   if (params?.page) searchParams.set('page', String(params.page))
   if (params?.page_size) searchParams.set('page_size', String(params.page_size))
 

@@ -105,7 +105,21 @@ const CUSTOMER_TAG_OPTIONS = [
   { label: '第二批次', value: 'second_import' },
 ]
 
-/** 意向度选项 */
+/** 意向度筛选选项 */
+const INTENTION_FILTER_OPTIONS = [
+  { label: '不需要', value: '不需要' },
+  { label: '无人接听', value: '无人接听' },
+  { label: '拒接', value: '拒接' },
+  { label: '接通挂断', value: '接通挂断' },
+  { label: '加了微信未通过', value: '加了微信未通过' },
+  { label: '已加上微信', value: '已加上微信' },
+  { label: '电话空号', value: '电话空号' },
+  { label: '微信空号', value: '微信空号' },
+  { label: '无效数据', value: '无效数据' },
+  { label: '走完流程', value: '走完流程' },
+]
+
+/** 意向度选项（表单用） */
 const INTENTION_OPTIONS = [
   { label: '没有咨询', value: '没有咨询' },
   { label: '不需要', value: '不需要' },
@@ -208,6 +222,7 @@ export function CustomersPage() {
   const [filterCustomerStage, setFilterCustomerStage] = useState<string | undefined>(undefined)
   const [filterClaimStatus, setFilterClaimStatus] = useState<string | undefined>(undefined)
   const [filterCustomerTag, setFilterCustomerTag] = useState<string | undefined>(undefined)
+  const [filterIntention, setFilterIntention] = useState<string | undefined>(undefined)
   const [currentPage, setCurrentPage] = useState(DEFAULT_PAGE)
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE)
 
@@ -299,6 +314,7 @@ export function CustomersPage() {
         customer_stage: filterCustomerStage,
         claim_status: filterClaimStatus,
         customer_tag: filterCustomerTag,
+        intention: filterIntention,
         page: currentPage,
         page_size: pageSize,
       })
@@ -318,7 +334,7 @@ export function CustomersPage() {
         message: getErrorMessage(error, '加载客户列表失败'),
       }))
     }
-  }, [accessToken, keyword, filterFeedbackStatus, filterCustomerStage, filterClaimStatus, filterCustomerTag, currentPage, pageSize, handleUnauthorized])
+  }, [accessToken, keyword, filterFeedbackStatus, filterCustomerStage, filterClaimStatus, filterCustomerTag, filterIntention, currentPage, pageSize, handleUnauthorized])
 
   useEffect(() => {
     void loadCustomers()
@@ -670,7 +686,7 @@ export function CustomersPage() {
   }
 
   const handleFilterChange = (
-    type: 'feedback_status' | 'customer_stage' | 'claim_status' | 'customer_tag',
+    type: 'feedback_status' | 'customer_stage' | 'claim_status' | 'customer_tag' | 'intention',
     value: string | undefined,
   ) => {
     if (type === 'feedback_status') {
@@ -681,6 +697,8 @@ export function CustomersPage() {
       setFilterClaimStatus(value)
     } else if (type === 'customer_tag') {
       setFilterCustomerTag(value)
+    } else if (type === 'intention') {
+      setFilterIntention(value)
     }
     setCurrentPage(DEFAULT_PAGE)
   }
@@ -729,8 +747,23 @@ export function CustomersPage() {
       title: '意向度',
       dataIndex: 'intention',
       key: 'intention',
-      width: 100,
-      render: (value: string | null) => value || '-',
+      width: 120,
+      render: (value: string | null) => {
+        if (!value) return '-'
+        const colorMap: Record<string, string> = {
+          '已加上微信': 'green',
+          '加了微信未通过': 'gold',
+          '微信空号': 'gold',
+          '无人接听': 'red',
+          '拒接': 'red',
+          '电话空号': 'red',
+          '不需要': 'default',
+          '接通挂断': 'default',
+          '无效数据': 'default',
+          '走完流程': 'blue',
+        }
+        return <Tag color={colorMap[value] || undefined}>{value}</Tag>
+      },
     },
     {
       title: '认领状态',
@@ -1065,6 +1098,13 @@ export function CustomersPage() {
               allowClear
               options={CUSTOMER_TAG_OPTIONS}
               onChange={(value) => handleFilterChange('customer_tag', value)}
+              style={{ width: 140 }}
+            />
+            <Select
+              placeholder="意向度"
+              allowClear
+              options={INTENTION_FILTER_OPTIONS}
+              onChange={(value) => handleFilterChange('intention', value)}
               style={{ width: 140 }}
             />
           </Space>

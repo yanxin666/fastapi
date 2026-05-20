@@ -214,6 +214,7 @@ def list_customers(
         None, description="认领状态筛选：unclaimed(公海)/claimed(已认领)/possession(长期客户)"
     ),
     claimed_by: int | None = Query(None, description="按认领用户 ID 筛选"),
+    intention: str | None = Query(None, description="意向筛选"),
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(20, ge=1, le=100, description="每页条数"),
     db: Session = Depends(get_db),
@@ -268,6 +269,9 @@ def list_customers(
     # 按认领用户筛选
     if claimed_by is not None:
         query = query.where(Customer.user_id == claimed_by)  # 确保类型一致
+
+    if intention is not None:
+        query = query.where(Customer.intention == intention)  # 确保类型一致
 
     # 计算总数（在分页前）
     count_query = select(func.count()).select_from(query.subquery())
