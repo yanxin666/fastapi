@@ -120,13 +120,13 @@ const INTENTION_FILTER_OPTIONS = [
 ]
 
 /** 意向度选项（表单用） */
-const INTENTION_OPTIONS = [
-  { label: '没有咨询', value: '没有咨询' },
-  { label: '不需要', value: '不需要' },
-  { label: '无人接听', value: '无人接听' },
-  { label: '有意向', value: '有意向' },
-  { label: '待跟进', value: '待跟进' },
-]
+// const INTENTION_OPTIONS = [
+//   { label: '没有咨询', value: '没有咨询' },
+//   { label: '不需要', value: '不需要' },
+//   { label: '无人接听', value: '无人接听' },
+//   { label: '有意向', value: '有意向' },
+//   { label: '待跟进', value: '待跟进' },
+// ]
 
 /** 微信状态选项 */
 const WECHAT_STATUS_OPTIONS = [
@@ -155,12 +155,12 @@ const FOLLOWUP_METHOD_OPTIONS = [
 ]
 
 /** 跟进意向度选项 */
-const FOLLOWUP_INTENTION_OPTIONS = [
-  { label: '无意向', value: '无意向' },
-  { label: '低意向', value: '低意向' },
-  { label: '中意向', value: '中意向' },
-  { label: '高意向', value: '高意向' },
-]
+// const FOLLOWUP_INTENTION_OPTIONS = [
+//   { label: '无意向', value: '无意向' },
+//   { label: '低意向', value: '低意向' },
+//   { label: '中意向', value: '中意向' },
+//   { label: '高意向', value: '高意向' },
+// ]
 
 /** 默认分页参数 */
 const DEFAULT_PAGE = 1
@@ -924,7 +924,7 @@ export function CustomersPage() {
         </Space>
         <Space wrap style={{ display: 'flex' }}>
           <Form.Item label="意向度" name="intention" style={{ marginBottom: 0, width: 160 }}>
-            <Select placeholder="意向度" allowClear options={INTENTION_OPTIONS} />
+            <Select placeholder="意向度" allowClear options={INTENTION_FILTER_OPTIONS} />
           </Form.Item>
           <Form.Item label="反馈状态" name="feedback_status" style={{ marginBottom: 0, width: 160 }}>
             <Select placeholder="反馈状态" allowClear options={FEEDBACK_STATUS_OPTIONS} />
@@ -1348,7 +1348,7 @@ export function CustomersPage() {
             <Select options={FOLLOWUP_METHOD_OPTIONS} />
           </Form.Item>
           <Form.Item label="意向度" name="intention">
-            <Select placeholder="意向度" allowClear options={FOLLOWUP_INTENTION_OPTIONS} />
+            <Select placeholder="意向度" allowClear options={INTENTION_FILTER_OPTIONS} />
           </Form.Item>
           <Form.Item label="跟进说明" name="notes">
             <Input.TextArea rows={3} placeholder="跟进说明" />

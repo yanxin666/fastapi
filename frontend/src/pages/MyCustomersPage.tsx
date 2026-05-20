@@ -72,10 +72,16 @@ const FOLLOWUP_METHOD_OPTIONS = [
 
 /** 跟进意向度选项 */
 const FOLLOWUP_INTENTION_OPTIONS = [
-  { label: '无意向', value: '无意向' },
-  { label: '低意向', value: '低意向' },
-  { label: '中意向', value: '中意向' },
-  { label: '高意向', value: '高意向' },
+  { label: '不需要', value: '不需要' },
+  { label: '无人接听', value: '无人接听' },
+  { label: '拒接', value: '拒接' },
+  { label: '接通挂断', value: '接通挂断' },
+  { label: '加了微信未通过', value: '加了微信未通过' },
+  { label: '已加上微信', value: '已加上微信' },
+  { label: '电话空号', value: '电话空号' },
+  { label: '微信空号', value: '微信空号' },
+  { label: '无效数据', value: '无效数据' },
+  { label: '走完流程', value: '走完流程' },
 ]
 
 // ==================== 工具函数 ====================

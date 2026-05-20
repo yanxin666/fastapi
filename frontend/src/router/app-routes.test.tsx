@@ -1,6 +1,6 @@
 import { App as AntApp, ConfigProvider } from 'antd'
 import { MemoryRouter, Outlet } from 'react-router-dom'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AppRoutes } from './AppRoutes'
@@ -21,30 +21,25 @@ vi.mock('../layouts/AdminLayout', () => ({
   ),
 }))
 
-vi.mock('../pages/DashboardPage', () => ({
-  DashboardPage: () => <div>Dashboard Page</div>,
-}))
-
+// 懒加载页面组件的 mock：lazy() 使用动态 import，需要 mock 整个模块
 vi.mock('../pages/LoginPage', () => ({
   LoginPage: () => <div>Admin Login</div>,
 }))
-
+vi.mock('../pages/DashboardPage', () => ({
+  DashboardPage: () => <div>Dashboard Page</div>,
+}))
 vi.mock('../pages/ForbiddenPage', () => ({
   ForbiddenPage: () => <div>Forbidden Page</div>,
 }))
-
 vi.mock('../pages/NotFoundPage', () => ({
   NotFoundPage: () => <div>Not Found Page</div>,
 }))
-
 vi.mock('../pages/UsersPage', () => ({
   UsersPage: () => <div>Users Page</div>,
 }))
-
 vi.mock('../pages/RolesPage', () => ({
   RolesPage: () => <div>Roles Page</div>,
 }))
-
 vi.mock('../pages/PermissionsPage', () => ({
   PermissionsPage: () => <div>Permissions Page</div>,
 }))
@@ -87,19 +82,23 @@ describe('app routing', () => {
     ])
   })
 
-  it('renders the login route for unauthenticated visitors', () => {
+  it('renders the login route for unauthenticated visitors', async () => {
     renderRoutes('/login')
 
-    expect(screen.getByText('Admin Login')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('Admin Login')).toBeInTheDocument()
+    })
   })
 
-  it('redirects unauthenticated visitors to the login route', () => {
+  it('redirects unauthenticated visitors to the login route', async () => {
     renderRoutes('/users')
 
-    expect(screen.getByText('Admin Login')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('Admin Login')).toBeInTheDocument()
+    })
   })
 
-  it('redirects authenticated visitors away from the login route', () => {
+  it('redirects authenticated visitors away from the login route', async () => {
     mockUseAuth.mockReturnValue({
       accessToken: 'access-token',
       user: {
@@ -119,10 +118,12 @@ describe('app routing', () => {
 
     renderRoutes('/login')
 
-    expect(screen.getByText('Dashboard Page')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('Dashboard Page')).toBeInTheDocument()
+    })
   })
 
-  it('renders the protected page when the user has the required permission', () => {
+  it('renders the protected page when the user has the required permission', async () => {
     mockUseAuth.mockReturnValue({
       accessToken: 'access-token',
       user: {
@@ -142,11 +143,13 @@ describe('app routing', () => {
 
     renderRoutes('/users')
 
-    expect(screen.getByText('Users Page')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('Users Page')).toBeInTheDocument()
+    })
     expect(screen.getByText('Admin Layout')).toBeInTheDocument()
   })
 
-  it('redirects to the forbidden page when the user lacks the required permission', () => {
+  it('redirects to the forbidden page when the user lacks the required permission', async () => {
     mockUseAuth.mockReturnValue({
       accessToken: 'access-token',
       user: {
@@ -166,12 +169,16 @@ describe('app routing', () => {
 
     renderRoutes('/permissions')
 
-    expect(screen.getByText('Forbidden Page')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('Forbidden Page')).toBeInTheDocument()
+    })
   })
 
-  it('renders the not found page for unknown routes', () => {
+  it('renders the not found page for unknown routes', async () => {
     renderRoutes('/missing')
 
-    expect(screen.getByText('Not Found Page')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('Not Found Page')).toBeInTheDocument()
+    })
   })
 })

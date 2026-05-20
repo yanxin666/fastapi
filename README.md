@@ -98,7 +98,8 @@ py -3 -m venv .venv
 .venv\Scripts\python.exe -m pip install -r requirements.txt
 .venv\Scripts\python.exe -m pip freeze > requirements.txt
 npm --prefix frontend install
-npm --prefix frontend run build
+npm --prefix frontend run build 编译
+npm --prefix frontend run dev 热更新
 .venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
