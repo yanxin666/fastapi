@@ -39,3 +39,14 @@ class UploadFileSchema(BaseModel):
 
     file_path: str
     """ 本地文件路径，例如 /path/to/local/file.txt """
+
+
+# 定义删除文件请求的数据模型
+# bucket_name: 存储桶名称，格式为 BucketName-Appid
+# object_name: 存储在 COS 中的对象键（即文件路径）
+class DeleteFileSchema(BaseModel):
+    bucket_name: str
+    """ 存储桶名称，格式为 BucketName-Appid，例如 mybucket-1250000000 """
+
+    object_name: str
+    """ 存储在 COS 中的对象键（即文件路径），例如 folder/subfolder/file.txt """

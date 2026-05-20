@@ -1,5 +1,5 @@
 from .client import _get_client
-from .schemas import InitClientSchema, UploadFileSchema
+from .schemas import DeleteFileSchema, InitClientSchema, UploadFileSchema
 
 
 # COSService 类封装了与腾讯云对象存储服务（COS）的交互，提供了上传文件的功能。
@@ -29,4 +29,16 @@ class COSService:
             return response
         except Exception as e:
             print(f"Error uploading file to COS: {e}")
+            raise e
+
+    # 删除 COS 上的文件
+    def delete_file(self, params: DeleteFileSchema):
+        try:
+            response = self.client.delete_object(
+                Bucket=params.bucket_name,
+                Key=params.object_name,
+            )
+            return response
+        except Exception as e:
+            print(f"Error deleting file from COS: {e}")
             raise e
