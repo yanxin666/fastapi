@@ -76,6 +76,13 @@ class Settings(BaseSettings):
     tencent_cos_secret_key: str = Field(default="")
     """腾讯云 COS SecretKey"""
 
+    # 数据库备份相关配置
+    pg_dump_container: str = Field(default="")
+    """PostgreSQL 容器名称，Docker 部署时设置此项以使用容器内的 pg_dump（版本自动匹配）"""
+
+    pg_dump_path: str = Field(default="")
+    """pg_dump 可执行文件路径，手动指定时优先使用；留空则自动检测"""
+
     # Pydantic 配置类，用于控制 Settings 的行为
     model_config = SettingsConfigDict(
         env_prefix="APP_",

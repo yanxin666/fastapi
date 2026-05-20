@@ -72,10 +72,11 @@ def _get_pg_dump_container() -> str | None:
     """
     获取 PostgreSQL 容器名称。
 
-    优先从环境变量 APP_PG_DUMP_CONTAINER 读取，
+    从应用配置的 pg_dump_container 字段读取，
     未设置则返回 None（使用直接模式）。
     """
-    return os.environ.get("APP_PG_DUMP_CONTAINER")
+    settings = get_settings()
+    return settings.pg_dump_container or None
 
 
 def _get_server_major_version(db_params: dict) -> int | None:
@@ -154,12 +155,13 @@ def _resolve_pg_dump_cmd(db_params: dict) -> str:
     解析可用的 pg_dump 命令路径。
 
     优先级：
-    1. 环境变量 APP_PG_DUMP_PATH 指定的路径
+    1. 配置项 pg_dump_path 指定的路径
     2. 版本专属目录中匹配服务器版本的 pg_dump
     3. 系统 PATH 中的 pg_dump
     """
-    # 优先使用环境变量指定的路径
-    env_path = os.environ.get("APP_PG_DUMP_PATH")
+    # 优先使用配置项指定的路径
+    settings = get_settings()
+    env_path = settings.pg_dump_path
     if env_path:
         if Path(env_path).exists():
             print(f"使用环境变量指定的 pg_dump: {env_path}")
@@ -192,8 +194,8 @@ def _check_pg_dump_version(pg_dump_cmd: str, db_params: dict) -> None:
         raise RuntimeError(
             f"pg_dump 版本不匹配：客户端 {client_major} < 服务器 {server_major}\n"
             f"请通过以下方式之一解决：\n"
-            f"  1. 设置 APP_PG_DUMP_CONTAINER 环境变量为 PostgreSQL 容器名（推荐 Docker 部署场景）\n"
-            f"  2. 设置 APP_PG_DUMP_PATH 环境变量指向版本 {server_major} 的 pg_dump 路径\n"
+            f"  1. 在 .env 中设置 APP_PG_DUMP_CONTAINER 为 PostgreSQL 容器名（推荐 Docker 部署场景）\n"
+            f"  2. 在 .env 中设置 APP_PG_DUMP_PATH 指向版本 {server_major} 的 pg_dump 路径\n"
             f"  3. 安装匹配版本的客户端：apt install postgresql-client-{server_major}"
         )
 
